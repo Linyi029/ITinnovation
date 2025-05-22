@@ -1,4 +1,5 @@
 import { createGlobalState } from 'react-hooks-global-state'
+import { jobs } from '../store/data'
 
 const { setGlobalState, useGlobalState, getGlobalState } = createGlobalState({
   connectedAccount: '',
@@ -7,12 +8,12 @@ const { setGlobalState, useGlobalState, getGlobalState } = createGlobalState({
   updateModal: 'scale-0',
   deleteModal: 'scale-0',
   payoutModal: 'scale-0',
-  jobs: [],
+  jobs: [jobs],
   jobListing: null,
   myjobs: [],
   mygigs: [],
   mybidjobs: [],
-  job: null,
+  job: [jobs],
   bidders: [],
   freelancers: [],
   freelancer: null,

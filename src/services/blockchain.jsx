@@ -277,7 +277,10 @@ const getJobs = async () => {
   try {
     const contract = await getEthereumContract()
     const jobs = await contract.getJobs()
+    console.log('链上 jobs(raw):', jobs);
     setGlobalState('jobs', structuredJobs(jobs))
+    console.log('链上 jobs(structured):', structuredJobs(jobs));
+    // setGlobalState('jobs', structured);
   } catch (err) {
     reportError(err)
   }
