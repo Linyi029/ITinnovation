@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\Users\\julie\\Web\\Dappworks\\src\\contracts\\DappWorks.sol": {
-      "lastModificationDate": 1747295596220,
-      "contentHash": "6ed42b060cd1c2ddae6676b930737c83",
+      "lastModificationDate": 1748275451624,
+      "contentHash": "c1906c8013209f58ae1dfd597654479a",
       "sourceName": "src/contracts/DappWorks.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -76,41 +76,6 @@
         "Counters"
       ]
     },
-    "C:\\Users\\julie\\Web\\Dappworks\\node_modules\\@openzeppelin\\contracts\\security\\ReentrancyGuard.sol": {
-      "lastModificationDate": 1747576609496,
-      "contentHash": "1535f8c0c68463f8c1b5239f7584e71f",
-      "sourceName": "@openzeppelin/contracts/security/ReentrancyGuard.sol",
-      "solcConfig": {
-        "version": "0.8.11",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "ReentrancyGuard"
-      ]
-    },
     "C:\\Users\\julie\\Web\\Dappworks\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
       "lastModificationDate": 1747576609463,
       "contentHash": "5a20b2cad87ddb61c7a3a6af21289e28",
@@ -146,6 +111,41 @@
       ],
       "artifacts": [
         "Ownable"
+      ]
+    },
+    "C:\\Users\\julie\\Web\\Dappworks\\node_modules\\@openzeppelin\\contracts\\security\\ReentrancyGuard.sol": {
+      "lastModificationDate": 1747576609496,
+      "contentHash": "1535f8c0c68463f8c1b5239f7584e71f",
+      "sourceName": "@openzeppelin/contracts/security/ReentrancyGuard.sol",
+      "solcConfig": {
+        "version": "0.8.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ReentrancyGuard"
       ]
     },
     "C:\\Users\\julie\\Web\\Dappworks\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SafeMath.sol": {
@@ -219,8 +219,8 @@
       ]
     },
     "C:\\Users\\julie\\Web\\Dappworks\\src\\contracts\\Puzz.sol": {
-      "lastModificationDate": 1747897198022,
-      "contentHash": "c4f12654ca0da1dd26afb576852d935a",
+      "lastModificationDate": 1748190123432,
+      "contentHash": "853e48f65711c1af42aa115c544fcdff",
       "sourceName": "src/contracts/Puzz.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -245,9 +245,17 @@
           }
         }
       },
-      "imports": [],
-      "versionPragmas": [],
-      "artifacts": []
+      "imports": [
+        "@openzeppelin/contracts/security/ReentrancyGuard.sol",
+        "@openzeppelin/contracts/utils/Counters.sol",
+        "@openzeppelin/contracts/access/Ownable.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "PUZchain"
+      ]
     }
   }
 }

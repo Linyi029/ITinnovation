@@ -20,6 +20,8 @@ const { setGlobalState, useGlobalState, getGlobalState } = createGlobalState({
   status: null,
   recentConversations: [],
   messages: [],
+  hasUserPassed: false,
+  hasAnyonePassed: false,
 })
 
 const truncate = (text, startChars, endChars, maxLength) => {

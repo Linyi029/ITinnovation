@@ -9,6 +9,7 @@ const UpdateJob = () => {
   const [jobTitle, setJobTitle] = useState('')
   const [prize, setPrize] = useState('')
   const [description, setDescription] = useState('')
+  const [answer, setAnswer] = useState('')
   const [skill, setSkill] = useState('')
   const [skills, setSkills] = useState([])
   const [updateModal] = useGlobalState('updateModal')
@@ -17,6 +18,7 @@ const UpdateJob = () => {
     setJobTitle(jobListing?.jobTitle)
     setPrize(jobListing?.prize)
     setDescription(jobListing?.description)
+    setAnswer(jobListing?.answer)
     setSkills(jobListing?.tags)
   }, [jobListing])
 
@@ -37,14 +39,15 @@ const UpdateJob = () => {
     setJobTitle('')
     setPrize('')
     setDescription('')
-
+    setAnswer('')
+    
     setGlobalState('jobListing', null)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (jobTitle == '' || prize == '' || skills.length < 3 || description == '')
+    if (jobTitle == '' || prize == '' || skills.length < 3 || description == '' || answer == '')
       return
     const params = {
       id: jobListing.id,
@@ -52,6 +55,7 @@ const UpdateJob = () => {
       description,
       tags: skills.slice(0, 5).join(','),
       description,
+      answer,
       prize,
     }
 
@@ -165,6 +169,17 @@ const UpdateJob = () => {
                   placeholder="write something beautiful..."
                   className="rounded-b-md focus:outline-none focus:ring-0 text-sm"
                   onChange={(e) => setDescription(e.target.value)}
+                ></textarea>
+              </div>
+              <div className="mb-5 flex flex-col space-y-1">
+                <label htmlFor="desc">Answer</label>
+                <textarea
+                  id="desc"
+                  value={answer}
+                  type="text"
+                  placeholder="write something beautiful..."
+                  className="rounded-b-md focus:outline-none focus:ring-0 text-sm"
+                  onChange={(e) => setAnswer(e.target.value)}
                 ></textarea>
               </div>
               <div>

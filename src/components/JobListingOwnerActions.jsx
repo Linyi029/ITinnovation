@@ -56,6 +56,7 @@ const JobListingOwnerActions = ({ jobListing, editable }) => {
           : null}
       </div>
       <p className="pr-7 mt-5 text-sm">{jobListing.description}</p>
+      <p className="pr-7 mt-5 text-sm">{jobListing.answer}</p>
       <div className="flex space-x-2">
         {editable && !jobListing.paidOut && (
           <div className="flex mt-5 space-x-3">

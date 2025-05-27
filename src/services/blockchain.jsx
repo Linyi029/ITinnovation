@@ -1,4 +1,4 @@
-import { setGlobalState } from '../store'
+import { setGlobalState, getGlobalState} from '../store'
 import abi from '../abis/src/contracts/DappWorks.sol/DappWorks.json'
 import address from '../abis/contractAddress.json'
 import { ethers } from 'ethers'
@@ -67,17 +67,28 @@ const connectWallet = async () => {
     if (!ethereum) return alert('Please install Metamask')
     const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
     setGlobalState('connectedAccount', accounts[0])
+
+    // 2. 拿到合约实例
+    const contract = await getEthereumContract()
+
+    // 3. 触发 registerOrLogin()，第一次会注册、以后调用就相当于登录
+    const tx = await contract.registerOrLogin()
+    await tx.wait()
+
+    console.log('✅ registerOrLogin tx mined:', tx.hash)
+
   } catch (error) {
+    console.error(error)
     reportError(error)
   }
 }
 
-const addJobListing = async ({ jobTitle, description, tags, prize }) => {
+const addJobListing = async ({ jobTitle, description, tags, prize, answer }) => {
   if (!ethereum) return alert('Please install Metamask')
   return new Promise(async (resolve, reject) => {
     try {
       const contract = await getEthereumContract()
-      tx = await contract.addJobListing(jobTitle, description, tags, {
+      tx = await contract.addJobListing(jobTitle, description, tags, answer, {
         value: toWei(prize),
       })
       await tx.wait()
@@ -125,22 +136,17 @@ const deleteJob = async (id) => {
   })
 }
 
-const bidForJob = async (id) => {
-  if (!ethereum) return alert('Please install Metamask')
-  return new Promise(async (resolve, reject) => {
-    try {
-      const contract = await getEthereumContract()
-      tx = await contract.bidForJob(id)
-      await tx.wait()
+const bidForJob = async (id, answer) => {
+  if (!ethereum) throw new Error('Please install Metamask')
 
-      await getJobs()
-      resolve(tx)
-    } catch (err) {
-      reportError(err)
-      reject(err)
-    }
-  })
+  const contract = await getEthereumContract()
+  const tx = await contract.bidForJob(id, answer)
+  await tx.wait()
+
+  await getJobs()
+  return tx
 }
+
 
 const acceptBid = async (id, jId, bidder) => {
   if (!ethereum) return alert('Please install Metamask')
@@ -239,6 +245,26 @@ const bidStatus = async (id) => {
   }
 }
 
+const bidPassStatus = async (jobId) => {
+  if (!window.ethereum) {
+    alert('Please install MetaMask')
+    return
+  }
+  try {
+    const contract = await getEthereumContract()
+    const [hasUserPassed, hasAnyonePassed] = await contract.bidStatus(
+      jobId,
+      // assume you already have connectedAccount in your store
+      getGlobalState('connectedAccount')
+    )
+    setGlobalState('hasUserPassed', hasUserPassed)
+    setGlobalState('hasAnyonePassed', hasAnyonePassed)
+  } catch (err) {
+    console.error(err)
+    reportError(err)
+  }
+}
+
 const getBidders = async (id) => {
   if (!ethereum) return alert('Please install Metamask')
   try {
@@ -264,9 +290,9 @@ const getFreelancers = async (id) => {
 const getAcceptedFreelancer = async (id) => {
   if (!ethereum) return alert('Please install Metamask')
   try {
-    const contract = await getEthereumContract()
-    const freelancer = await contract.getAcceptedFreelancer(id)
-    setGlobalState('freelancer', structuredFreelancers([freelancer])[0])
+    // const contract = await getEthereumContract()
+    // const freelancer = await contract.getAcceptedFreelancer(id)
+    // setGlobalState('freelancer', structuredFreelancers([freelancer])[0])
   } catch (err) {
     reportError(err)
   }
@@ -381,6 +407,7 @@ export {
   revoke,
   payout,
   bidStatus,
+  bidPassStatus,
   getBidders,
   getFreelancers,
   getAcceptedFreelancer,

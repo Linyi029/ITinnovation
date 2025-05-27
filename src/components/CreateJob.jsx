@@ -11,6 +11,7 @@ const CreateJob = () => {
   const [description, setDescription] = useState('')
   const [skill, setSkill] = useState('')
   const [skills, setSkills] = useState([])
+  const [answer, setAnswer] = useState('')
 
   const addSkills = () => {
     if (skills.length != 5) {
@@ -31,12 +32,13 @@ const CreateJob = () => {
     setSkills([])
     setSkill('')
     setDescription('')
+    setAnswer('')
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (jobTitle == '' || prize == '' || skills.length < 3 || description == '')
+    if (jobTitle == '' || prize == '' || skills.length < 3 || description == '' || answer == '')
       return
 
     const params = {
@@ -44,6 +46,7 @@ const CreateJob = () => {
       description,
       tags: skills.slice(0, 5).join(','),
       description,
+      answer,
       prize,
     }
 
@@ -156,6 +159,18 @@ const CreateJob = () => {
                   placeholder="write something beautiful..."
                   className="rounded-b-md focus:outline-none focus:ring-0 text-sm"
                   onChange={(e) => setDescription(e.target.value)}
+                  required
+                ></textarea>
+              </div>
+              <div className="mb-5 flex flex-col space-y-1">
+                <label htmlFor="desc">Answer</label>
+                <textarea
+                  id="desc"
+                  value={answer}
+                  type="text"
+                  placeholder="write something beautiful..."
+                  className="rounded-b-md focus:outline-none focus:ring-0 text-sm"
+                  onChange={(e) => setAnswer(e.target.value)}
                   required
                 ></textarea>
               </div>

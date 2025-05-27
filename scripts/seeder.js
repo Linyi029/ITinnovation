@@ -27,6 +27,7 @@ async function main() {
       jobTitle: faker.lorem.sentence({ min: 4, max: 10 }),
       description: faker.lorem.paragraphs(4),
       tags: faker.lorem.words(4).split(' '),
+      answer: "abcd", // 讓每一題答案都是abcd
       prize:
         faker.number.float({
           min: 0.1 * 100,
@@ -41,6 +42,7 @@ async function main() {
       params.jobTitle,
       params.description,
       params.tags.join(','),
+      params.answer,
       { value: toWei(params.prize) }
     )
     await tx.wait()
