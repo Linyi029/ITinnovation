@@ -1,0 +1,24 @@
+# .github/workflows/foundry.yml
+name: Foundry project
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Foundry
+        uses: foundry-rs/setup-foundry@v1
+        with:
+          version: nightly
+
+      - name: Run Tests
+        run: |
+          forge install
+          forge build
+          forge test -vv
