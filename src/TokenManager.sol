@@ -15,19 +15,19 @@ contract TokenManager is Ownable {
         platform = msg.sender;
     }
 
-    function takeDeposit(address from, uint amount) external {
+    function takeDeposit(address from, uint256 amount) external {
         require(token.transferFrom(from, address(this), amount), "Transfer failed");
     }
 
-    function rewardUser(address to, uint amount) external {
+    function rewardUser(address to, uint256 amount) external {
         require(token.transfer(to, amount), "Reward failed");
     }
 
-    function burnToken(uint amount) external {
+    function burnToken(uint256 amount) external {
         token.burn(amount); // 合約必須持有 token 才能 burn
     }
 
-    function withdrawToOwner(uint amount) external onlyOwner {
+    function withdrawToOwner(uint256 amount) external onlyOwner {
         require(token.transfer(owner(), amount), "Withdraw failed");
     }
 }

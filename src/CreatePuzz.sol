@@ -5,63 +5,64 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-
 interface ITokenManager {
-    function takeDeposit(address from, uint amount) external;
-    function rewardUser(address to, uint amount) external;
-    function burnToken(uint amount) external;
+    function takeDeposit(address from, uint256 amount) external;
+    function rewardUser(address to, uint256 amount) external;
+    function burnToken(uint256 amount) external;
 }
 
 contract CreatePuzz is Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
+
     Counters.Counter private _puzzCounter;
 
     struct PuzzStruct {
-        uint id;
+        uint256 id;
         address owner;
         string title;
         string description;
         string tags;
-        uint prize;
+        uint256 prize;
         bool paidOut;
-        uint timestamp;
+        uint256 timestamp;
         bool listed;
-        uint disputed;
+        uint256 disputed;
         address[] disputers;
         string answer;
-        uint timestamp_end;
-        uint timestamp_verified;
+        uint256 timestamp_end;
+        uint256 timestamp_verified;
     }
     //嘗試紀錄
+
     struct Attempt {
-        uint id;
-        uint pId;
+        uint256 id;
+        uint256 pId;
         address account;
         bool pass;
     }
 
     struct UserStruct {
-        uint id;
+        uint256 id;
         address account;
     }
 
     ITokenManager public tokenManager;
-    uint public burnRate = 10;
+    uint256 public burnRate = 10;
 
-    uint public entryBaseFee = 5e18;
-    uint public entryStepFee = 5e17; // 0.5 PUZ
+    uint256 public entryBaseFee = 5e18;
+    uint256 public entryStepFee = 5e17; // 0.5 PUZ
 
-    mapping(uint => PuzzStruct) public puzzListings;
-    mapping(uint => Attempt[]) public puzzAttempts;
-    mapping(uint => bool) public puzzShowStatus;
-    mapping(uint => mapping(address => uint)) public attemptCount;
-    mapping(address => uint[]) public puzzAtmptIdByUser;
+    mapping(uint256 => PuzzStruct) public puzzListings;
+    mapping(uint256 => Attempt[]) public puzzAttempts;
+    mapping(uint256 => bool) public puzzShowStatus;
+    mapping(uint256 => mapping(address => uint256)) public attemptCount;
+    mapping(address => uint256[]) public puzzAtmptIdByUser;
 
-    uint public nextUserId = 1;
+    uint256 public nextUserId = 1;
     mapping(address => UserStruct) public users;
     mapping(address => bool) public isRegistered;
 
-    modifier onlyPuzCreater(uint id) {
+    modifier onlyPuzCreater(uint256 id) {
         require(puzzListings[id].owner == msg.sender, "Not puzzle creator");
         _;
     }
@@ -72,10 +73,7 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
 
     function registerOrLogin() public {
         if (!isRegistered[msg.sender]) {
-            users[msg.sender] = UserStruct({
-                id: nextUserId,
-                account: msg.sender
-            });
+            users[msg.sender] = UserStruct({id: nextUserId, account: msg.sender});
             isRegistered[msg.sender] = true;
             nextUserId++;
         }
@@ -86,7 +84,7 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
         string memory description,
         string memory tags,
         string memory answer,
-        uint fixedFee
+        uint256 fixedFee
     ) public {
         require(bytes(title).length > 0, "Please provide a title");
         require(bytes(description).length > 0, "Please provide a description");
@@ -96,7 +94,7 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
         tokenManager.takeDeposit(msg.sender, fixedFee);
 
         _puzzCounter.increment();
-        uint puzId = _puzzCounter.current();
+        uint256 puzId = _puzzCounter.current();
 
         PuzzStruct storage puzz = puzzListings[puzId];
         puzz.id = puzId;
@@ -115,16 +113,16 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
         puzzShowStatus[puzId] = true;
     }
 
-    function getEntryFee(uint pId) public view returns (uint) {
+    function getEntryFee(uint256 pId) public view returns (uint256) {
         return entryBaseFee + puzzAttempts[pId].length * entryStepFee;
     }
 
     //可重複測試，但每次測試都要交錢
-    function attemptPuzzle(uint pId, string memory guess) public nonReentrant {
+    function attemptPuzzle(uint256 pId, string memory guess) public nonReentrant {
         require(puzzShowStatus[pId], "Puzzle not active");
 
-        uint numAttempts = puzzAttempts[pId].length;
-        uint entryFee = entryBaseFee + (numAttempts * entryStepFee);
+        uint256 numAttempts = puzzAttempts[pId].length;
+        uint256 entryFee = entryBaseFee + (numAttempts * entryStepFee);
         tokenManager.takeDeposit(msg.sender, entryFee);
 
         puzzListings[pId].prize += entryFee;
@@ -134,18 +132,13 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
         attemptCount[pId][msg.sender] += 1;
         puzzAtmptIdByUser[msg.sender].push(pId);
 
-        Attempt memory newAttempt = Attempt({
-            id: numAttempts,
-            pId: pId,
-            account: msg.sender,
-            pass: pass
-        });
+        Attempt memory newAttempt = Attempt({id: numAttempts, pId: pId, account: msg.sender, pass: pass});
         puzzAttempts[pId].push(newAttempt);
 
         if (pass) {
-            uint totalPool = puzzListings[pId].prize;
-            uint reward = (totalPool * (100 - burnRate)) / 100;
-            uint burn = totalPool - reward;
+            uint256 totalPool = puzzListings[pId].prize;
+            uint256 reward = (totalPool * (100 - burnRate)) / 100;
+            uint256 burn = totalPool - reward;
 
             tokenManager.rewardUser(msg.sender, reward);
             tokenManager.burnToken(burn);
@@ -156,21 +149,20 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
     }
 
     //題目逾時無人解出，出題者可取回獎金中的90%
-    function claimExpiredReward(uint pId) external nonReentrant onlyPuzCreater(pId) {
-    PuzzStruct storage puzz = puzzListings[pId];
-    require(!puzz.paidOut, "Already paid out");
-    require(block.timestamp > puzz.timestamp_end, "Puzzle not expired yet");
-    require(puzz.prize > 0, "No prize to claim");
+    function claimExpiredReward(uint256 pId) external nonReentrant onlyPuzCreater(pId) {
+        PuzzStruct storage puzz = puzzListings[pId];
+        require(!puzz.paidOut, "Already paid out");
+        require(block.timestamp > puzz.timestamp_end, "Puzzle not expired yet");
+        require(puzz.prize > 0, "No prize to claim");
 
-    uint totalPool = puzz.prize;
-    uint reward = (totalPool * (100 - burnRate)) / 100;
-    uint burn = totalPool - reward;
+        uint256 totalPool = puzz.prize;
+        uint256 reward = (totalPool * (100 - burnRate)) / 100;
+        uint256 burn = totalPool - reward;
 
-    tokenManager.rewardUser(puzz.owner, reward);
-    tokenManager.burnToken(burn);
+        tokenManager.rewardUser(puzz.owner, reward);
+        tokenManager.burnToken(burn);
 
-    puzz.paidOut = true;
-    puzzShowStatus[pId] = false;
-}
-
+        puzz.paidOut = true;
+        puzzShowStatus[pId] = false;
+    }
 }
