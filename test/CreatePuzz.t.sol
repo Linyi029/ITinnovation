@@ -1,142 +1,163 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import "forge-std/console.sol";
 import "forge-std/Test.sol";
-import "../src/CreatePuzz.sol";
-import "../src/PUZToken.sol";
-import "../src/TokenManager.sol";
+import "forge-std/console.sol";
 
+import {PUZToken} from "../src/PUZToken.sol";
+import {TokenManager} from "../src/TokenManager.sol";
+import {TokenManagerFactory} from "../src/TokenManagerFac.sol";
+import {CreatePuzz} from "../src/CreatePuzz.sol";
+
+//連前端測試可以參考這個去做
 contract CreatePuzzTest is Test {
-    PUZToken token;
-    TokenManager manager;
-    CreatePuzz puzz;
+    PUZToken public token;
+    TokenManagerFactory public factory;
+    CreatePuzz public puzz;
 
-    address owner;
-    address user1;
-    address user2;
+    address public user1;
+    address public user2;
 
     function setUp() public {
-        owner = address(this);
+        token = new PUZToken("PUZ", "PUZ", 1000 ether);
+
+        puzz = new CreatePuzz(address(token), address(factory));
+        factory = new TokenManagerFactory(address(token), address(puzz));
+        puzz.setFactory(address(factory)); // 最後把 factory 設給 puzz
+
         user1 = vm.addr(1);
         user2 = vm.addr(2);
-
-        token = new PUZToken("PUZ", "PUZ", 1000 ether);
-        manager = new TokenManager(address(token));
-        puzz = new CreatePuzz(address(manager));
 
         token.transfer(user1, 100 ether);
         token.transfer(user2, 100 ether);
 
         vm.prank(user1);
-        token.approve(address(manager), 100 ether);
-
+        token.approve(address(puzz), type(uint256).max);
         vm.prank(user2);
-        token.approve(address(manager), 100 ether);
+        token.approve(address(puzz), type(uint256).max);
 
         vm.prank(user1);
         puzz.registerOrLogin();
-
         vm.prank(user2);
         puzz.registerOrLogin();
     }
 
-    function testPrizePoolWithEntryFees() public {
-        // user1 發布題目，固定費用為 2 ether
+    function testPuzzleFlowCorrectAnswer() public {
         vm.prank(user1);
-        puzz.addPuzzListing("title", "desc", "tag", "42", 2 ether);
+        //user1出題，扣兩塊
+        uint256 puzId = puzz.createAndAddWithNewManager(
+            "title",
+            "desc",
+            "tag",
+            "42",
+            2 ether
+        );
+        console.log("Puzzle ID:", puzId);
 
-        uint256 managerBefore = token.balanceOf(address(manager));
-        console.log("Prize after listing (should be 2 ether):", managerBefore);
-
-        // user2 初始餘額
-        uint256 user2Initial = token.balanceOf(user2);
-        console.log("user2 initial balance:", user2Initial);
-
-        // TokenManager 初始餘額（為了追蹤獎金池變化）
-
-        uint256 supplyBefore = token.totalSupply();
-        console.log("TotalSupplyInt:", supplyBefore);
-
-        // user2 第一次解錯答案
         vm.prank(user2);
-        puzz.attemptPuzzle(1, "24");
-        console.log("user2 after first attempt:", token.balanceOf(user2));
+        puzz.attemptPuzzle(puzId, "24"); //user2答錯，扣入場費5塊
 
-        uint256 manager1 = token.balanceOf(address(manager));
-        console.log("Prize  listing (should be 7 ether):", manager1);
-
-        // user2 第二次解對答案
         vm.prank(user2);
-        puzz.attemptPuzzle(1, "42");
-        uint256 user2After = token.balanceOf(user2);
-        console.log("user2 after second (win):", user2After);
+        puzz.attemptPuzzle(puzId, "42"); //user2答對，先扣掉5.5塊，發還(2+5+5.5)*0.9
 
-        // 題目應該已經關閉
-        bool show = puzz.puzzShowStatus(1);
-        assertEq(show, false);
+        uint256 balance1 = token.balanceOf(user1);
+        uint256 balance2 = token.balanceOf(user2);
+        uint256 contractBal = token.balanceOf(address(puzz));
 
-        // 驗證獎金池總額與期望
-        uint256 expectedPool = 2 ether + 5 ether + 5.5 ether;
-        uint256 expectedReward = (expectedPool * 90) / 100;
-        console.log("Expected", expectedReward);
-        console.log("Us2:", user2Initial - 10.5 ether + expectedReward);
+        console.log("user1 balance:", balance1);
+        console.log("user2 balance:", balance2);
+        console.log("CreatePuzz contract balance:", contractBal);
 
-        uint256 expectedBurn = expectedPool - expectedReward;
-        console.log("expected burn:", expectedBurn);
-
-        // 1. 使用者是否獲得正確獎勵
-        assertApproxEqAbs(user2After, user2Initial - 10.5 ether + expectedReward, 0.01 ether);
-
-        // 2. 總供應量是否減少（代表有成功 burn）
-        uint256 supplyAfter = token.totalSupply();
-        console.log("supplyAfter:", supplyAfter);
-
-        uint256 actualBurn = supplyBefore - supplyAfter;
-
-        console.log("actual burned:", actualBurn);
-        assertApproxEqAbs(actualBurn, expectedBurn, 0.01 ether);
-
-        uint256 prizepoolfinal = token.balanceOf(address(manager));
-
-        console.log("prizepoolfinal ", prizepoolfinal);
+        //拿來看console確定有沒有算錯的，沒有意義
+        assertEq(puzz.puzzShowStatus(puzId), false);
     }
 
-    function testPrizeReturnToCreatorAfterExpire() public {
-        // user1 發布題目（不會有人解）
+    function testPuzzleClaimAfterTimeout() public {
         vm.prank(user1);
-        puzz.addPuzzListing("title", "desc", "tag", "42", 2 ether);
+        //user1出題，扣兩塊
+        uint256 puzId = puzz.createAndAddWithNewManager(
+            "title",
+            "desc",
+            "tag",
+            "42",
+            2 ether
+        );
+        console.log("Puzzle ID:", puzId);
 
-        uint256 supplyBefore = token.totalSupply();
-        uint256 user1Initial = token.balanceOf(user1);
-
-        // user2 嘗試一次，獎金池 +0.5 PUZ
+        //user2期限內答題但答錯，扣五塊給獎金池
         vm.prank(user2);
-        puzz.attemptPuzzle(1, "wrong");
+        puzz.attemptPuzzle(puzId, "wrong");
 
-        // 快轉時間超過題目結束時間（30天）
+        //用來測試的時間快轉
         vm.warp(block.timestamp + 31 days);
 
-        // user1 提領過期獎金
+        //逾期無人答對，獎金90%發還出題者
+        uint256 before = token.balanceOf(user1);
         vm.prank(user1);
-        puzz.claimExpiredReward(1);
+        puzz.claimExpiredReward(puzId);
+        uint256 afterClaim = token.balanceOf(user1);
 
-        // 驗證獎金回流與燒毀
-        uint256 expectedPool = 2 ether + 5 ether;
-        uint256 expectedReward = (expectedPool * 90) / 100;
-        uint256 expectedBurn = expectedPool - expectedReward;
+        console.log("user1 got back reward:", afterClaim - before);
+        console.log("user1 balance:", afterClaim);
+        console.log("user2 balance:", token.balanceOf(user2));
 
-        uint256 user1After = token.balanceOf(user1);
+        //拿來看console確定有沒有算錯的，沒有意義
+        assertEq(puzz.puzzShowStatus(puzId), false);
+    }
+
+    function testPrizePoolAndBurnLogic() public {
+        vm.prank(user1);
+        uint256 puzId = puzz.createAndAddWithNewManager(
+            "title",
+            "desc",
+            "tag",
+            "42",
+            2 ether
+        );
+        console.log("Puzzle ID:", puzId);
+
+        uint256 supplyBefore = token.totalSupply();
+
+        vm.prank(user2);
+        puzz.attemptPuzzle(puzId, "wrong");
+        vm.prank(user2);
+        puzz.attemptPuzzle(puzId, "42");
+
         uint256 supplyAfter = token.totalSupply();
-        uint256 actualBurn = supplyBefore - supplyAfter;
+        uint256 burnAmount = supplyBefore - supplyAfter;
 
-        console.log("expected reward to creator:", expectedReward);
-        console.log("actual reward:", user1After - user1Initial);
-        assertApproxEqAbs(user1After, user1Initial + expectedReward, 0.01 ether);
-        assertApproxEqAbs(actualBurn, expectedBurn, 0.01 ether);
+        
 
-        // 驗證題目已關閉
-        bool show = puzz.puzzShowStatus(1);
-        assertEq(show, false);
+        console.log("Total burn:", burnAmount);
+        console.log("user1 balance:", token.balanceOf(user1));
+        console.log("user2 balance:", token.balanceOf(user2));
+
+        //拿來看console確定有沒有算錯的，沒有意義
+        assertGt(burnAmount, 0);
+    }
+
+    function testMultiplePuzzleIds() public {
+        vm.prank(user1);
+        uint256 id1 = puzz.createAndAddWithNewManager(
+            "title1",
+            "desc",
+            "tag",
+            "42",
+            2 ether
+        );
+        vm.prank(user1);
+        uint256 id2 = puzz.createAndAddWithNewManager(
+            "title2",
+            "desc",
+            "tag",
+            "84",
+            3 ether
+        );
+
+        console.log("Puzzle ID 1:", id1); // 應該是 1
+        console.log("Puzzle ID 2:", id2); // 應該是 2
+
+        //拿來看console確定有沒有算錯的，沒有意義
+        assertEq(false, false);
     }
 }

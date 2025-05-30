@@ -1,33 +1,39 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-//這裡是獎金池，出題者跟解題者交的錢會轉到這個合約
+import "./PUZToken.sol";
+
+//獎金池的功能，可以理解為錢會轉到具備這些功能的獎金池
 
 contract TokenManager is Ownable {
-    ERC20Burnable public token;
-    address public platform;
+    IERC20 public immutable token;
+    address public immutable createPuzz;
 
-    constructor(address _token) {
-        token = ERC20Burnable(_token);
-        platform = msg.sender;
+    modifier onlyCreatePuzz() {
+        require(msg.sender == createPuzz, "Only CreatePuzz can call");
+        _;
     }
 
-    function takeDeposit(address from, uint256 amount) external {
-        require(token.transferFrom(from, address(this), amount), "Transfer failed");
+    constructor(address _token, address _createPuzz) {
+        token = IERC20(_token);
+        createPuzz = _createPuzz;
+    }//用什麼錢，這個獎金池對應的puzzle地址
+
+    function takeDeposit(address from, uint256 amount) external onlyCreatePuzz {
+        require(
+            token.transferFrom(from, address(this), amount),
+            "Transfer failed"
+        );
     }
 
-    function rewardUser(address to, uint256 amount) external {
-        require(token.transfer(to, amount), "Reward failed");
+    function rewardUser(address to, uint256 amount) external onlyCreatePuzz {
+        require(token.transfer(to, amount), "Reward transfer failed");
     }
 
-    function burnToken(uint256 amount) external {
-        token.burn(amount); // 合約必須持有 token 才能 burn
-    }
-
-    function withdrawToOwner(uint256 amount) external onlyOwner {
-        require(token.transfer(owner(), amount), "Withdraw failed");
+    function burnToken(uint256 amount) external onlyCreatePuzz {
+       PUZToken(address(token)).burn(amount);
     }
 }

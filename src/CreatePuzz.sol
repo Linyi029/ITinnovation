@@ -5,14 +5,15 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-interface ITokenManager {
-    function takeDeposit(address from, uint256 amount) external;
-    function rewardUser(address to, uint256 amount) external;
-    function burnToken(uint256 amount) external;
-}
+import "./PUZToken.sol";
+import "./TokenManager.sol";
+import "./TokenManagerFac.sol";
 
 contract CreatePuzz is Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
+
+    PUZToken public token;
+    TokenManagerFactory public factory;
 
     Counters.Counter private _puzzCounter;
 
@@ -26,13 +27,13 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
         bool paidOut;
         uint256 timestamp;
         bool listed;
-        uint256 disputed;
-        address[] disputers;
+        uint256 disputed; //optional 
+        address[] disputers; //optional 
         string answer;
         uint256 timestamp_end;
-        uint256 timestamp_verified;
+        uint256 timestamp_verified; //optional 
+        address puzPrizeManager;
     }
-    //嘗試紀錄
 
     struct Attempt {
         uint256 id;
@@ -46,9 +47,7 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
         address account;
     }
 
-    ITokenManager public tokenManager;
     uint256 public burnRate = 10;
-
     uint256 public entryBaseFee = 5e18;
     uint256 public entryStepFee = 5e17; // 0.5 PUZ
 
@@ -67,72 +66,95 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
         _;
     }
 
-    constructor(address _tokenManager) {
-        tokenManager = ITokenManager(_tokenManager);
+    constructor(address _token, address _factory) {
+        token = PUZToken(_token);
+        factory = TokenManagerFactory(_factory);
     }
 
     function registerOrLogin() public {
         if (!isRegistered[msg.sender]) {
-            users[msg.sender] = UserStruct({id: nextUserId, account: msg.sender});
+            users[msg.sender] = UserStruct({
+                id: nextUserId,
+                account: msg.sender
+            });
             isRegistered[msg.sender] = true;
             nextUserId++;
         }
     }
 
-    function addPuzzListing(
+    function createAndAddWithNewManager(
         string memory title,
         string memory description,
         string memory tags,
         string memory answer,
-        uint256 fixedFee
-    ) public {
-        require(bytes(title).length > 0, "Please provide a title");
-        require(bytes(description).length > 0, "Please provide a description");
-        require(bytes(tags).length > 0, "Please provide tags");
-        require(fixedFee > 0, "Fixed fee required");
-
-        tokenManager.takeDeposit(msg.sender, fixedFee);
+        uint256 fixedFee //入場手續費，要改成公定價提出（其實不改也沒差），不要讓user自己設
+    ) public returns (uint256) {
+        require(fixedFee > 0, "Need prize"); //入場手續費，要改成公定價提出，不要讓user自己設
 
         _puzzCounter.increment();
         uint256 puzId = _puzzCounter.current();
 
-        PuzzStruct storage puzz = puzzListings[puzId];
-        puzz.id = puzId;
-        puzz.owner = msg.sender;
-        puzz.title = title;
-        puzz.description = description;
-        puzz.tags = tags;
-        puzz.prize = fixedFee;
-        puzz.paidOut = false;
-        puzz.timestamp = block.timestamp;
-        puzz.listed = true;
-        puzz.answer = answer;
-        puzz.timestamp_end = block.timestamp + 30 days;
-        puzz.timestamp_verified = block.timestamp + 7 days;
+        address manager = factory.createTokenManager(puzId); //創建獎金池
+        require(manager != address(0), "Manager creation failed");
+
+        IERC20(token).transferFrom(msg.sender, manager, fixedFee);
+
+        puzzListings[puzId] = PuzzStruct({
+            id: puzId,
+            owner: msg.sender,
+            title: title,
+            description: description,
+            tags: tags,
+            prize: fixedFee,
+            paidOut: false,
+            timestamp: block.timestamp,
+            listed: true,
+            disputed: 0,
+            disputers: new address[](0),
+            answer: answer,
+            timestamp_end: block.timestamp + 30 days,
+            timestamp_verified: block.timestamp + 7 days,
+            puzPrizeManager: manager
+        });
 
         puzzShowStatus[puzId] = true;
+        return puzId;
     }
 
+    //入場費'bonding curve'，越晚入場越貴
     function getEntryFee(uint256 pId) public view returns (uint256) {
         return entryBaseFee + puzzAttempts[pId].length * entryStepFee;
     }
 
-    //可重複測試，但每次測試都要交錢
-    function attemptPuzzle(uint256 pId, string memory guess) public nonReentrant {
+    function attemptPuzzle(
+        uint256 pId,
+        string memory guess
+    ) public nonReentrant {
         require(puzzShowStatus[pId], "Puzzle not active");
-
         uint256 numAttempts = puzzAttempts[pId].length;
-        uint256 entryFee = entryBaseFee + (numAttempts * entryStepFee);
-        tokenManager.takeDeposit(msg.sender, entryFee);
+        uint256 entryFee = getEntryFee(pId);
+
+        //交錢
+        IERC20(token).transferFrom(
+            msg.sender,
+            puzzListings[pId].puzPrizeManager,
+            entryFee
+        );
 
         puzzListings[pId].prize += entryFee;
 
-        bool pass = (keccak256(abi.encodePacked(guess)) == keccak256(abi.encodePacked(puzzListings[pId].answer)));
+        bool pass = (keccak256(abi.encodePacked(guess)) ==
+            keccak256(abi.encodePacked(puzzListings[pId].answer)));
 
         attemptCount[pId][msg.sender] += 1;
         puzzAtmptIdByUser[msg.sender].push(pId);
 
-        Attempt memory newAttempt = Attempt({id: numAttempts, pId: pId, account: msg.sender, pass: pass});
+        Attempt memory newAttempt = Attempt({
+            id: numAttempts,
+            pId: pId,
+            account: msg.sender,
+            pass: pass
+        });
         puzzAttempts[pId].push(newAttempt);
 
         if (pass) {
@@ -140,16 +162,21 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
             uint256 reward = (totalPool * (100 - burnRate)) / 100;
             uint256 burn = totalPool - reward;
 
-            tokenManager.rewardUser(msg.sender, reward);
-            tokenManager.burnToken(burn);
+            TokenManager(puzzListings[pId].puzPrizeManager).rewardUser(
+                msg.sender,
+                reward
+            );
+            TokenManager(puzzListings[pId].puzPrizeManager).burnToken(burn);
 
             puzzListings[pId].paidOut = true;
             puzzShowStatus[pId] = false;
         }
     }
 
-    //題目逾時無人解出，出題者可取回獎金中的90%
-    function claimExpiredReward(uint256 pId) external nonReentrant onlyPuzCreater(pId) {
+    //題目逾期，90%返還給出題者
+    function claimExpiredReward(
+        uint256 pId
+    ) external nonReentrant onlyPuzCreater(pId) {
         PuzzStruct storage puzz = puzzListings[pId];
         require(!puzz.paidOut, "Already paid out");
         require(block.timestamp > puzz.timestamp_end, "Puzzle not expired yet");
@@ -159,10 +186,15 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
         uint256 reward = (totalPool * (100 - burnRate)) / 100;
         uint256 burn = totalPool - reward;
 
-        tokenManager.rewardUser(puzz.owner, reward);
-        tokenManager.burnToken(burn);
+        TokenManager(puzz.puzPrizeManager).rewardUser(puzz.owner, reward);
+        TokenManager(puzz.puzPrizeManager).burnToken(burn);
 
         puzz.paidOut = true;
         puzzShowStatus[pId] = false;
+    }
+
+    //setter，用於自動部署合約
+    function setFactory(address _factory) external onlyOwner {
+        factory = TokenManagerFactory(_factory);
     }
 }
