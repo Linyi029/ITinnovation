@@ -1,18 +1,18 @@
-import { setGlobalState, getGlobalState} from '../store'
+import { setGlobalState, getGlobalState } from '../store'
 import abi from '../abis/src/contracts/DappWorks.sol/DappWorks.json'
 import address from '../abis/contractAddress.json'
 import { ethers } from 'ethers'
-import { logOutWithCometChat } from './chat'
+// import { logOutWithCometChat } from './chat'
 
 const { ethereum } = window
 const ContractAddress = address.address
-const ContractAbi = abi.abi
-let tx
+const ContractAbi     = abi.abi
+// let tx
 
-const toWei = (num) => ethers.utils.parseEther(num.toString())
+const toWei   = (num) => ethers.utils.parseEther(num.toString())
 const fromWei = (num) => ethers.utils.formatEther(num)
 
-const getEthereumContract = async () => {
+async function getEthereumContract() {
   const accounts = await ethereum.request({ method: 'eth_accounts' })
   const provider = accounts[0]
     ? new ethers.providers.Web3Provider(ethereum)
@@ -24,7 +24,15 @@ const getEthereumContract = async () => {
   return contract
 }
 
-const isWalletConnected = async () => {
+export const loadData = async () => {
+  // all getters
+  // await getJobs()
+  // await getMyJobs()
+  // await getMyGigs()
+  // await getMyBidJobs()
+}
+
+export const isWalletConnected = async () => {
   try {
     if (!ethereum) {
       reportError('Please install Metamask')
@@ -62,7 +70,7 @@ const isWalletConnected = async () => {
   }
 }
 
-const connectWallet = async () => {
+export const connectWallet = async () => {
   try {
     if (!ethereum) return alert('Please install Metamask')
     const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
@@ -83,338 +91,109 @@ const connectWallet = async () => {
   }
 }
 
-const addJobListing = async ({ jobTitle, description, tags, prize, answer }) => {
-  if (!ethereum) return alert('Please install Metamask')
-  return new Promise(async (resolve, reject) => {
-    try {
-      const contract = await getEthereumContract()
-      tx = await contract.addJobListing(jobTitle, description, tags, answer, {
-        value: toWei(prize),
-      })
-      await tx.wait()
+// Actions
+// export const registerOrLogin = async () => {
+//   const contract = await getEthereumContract()
+//   const tx = await contract.registerOrLogin()
+//   await tx.wait()
+// }
 
-      await loadData()
-      resolve(tx)
-    } catch (err) {
-      reportError(err)
-      reject(err)
-    }
-  })
+// create a new puzzle
+export const addPuzzListing = async ({ title, description, tags, answer, fee }) => {
+  if (!ethereum) return alert('Please install Metamask')
+  try{  
+    const contract = await getEthereumContract()
+    const tx = await contract.addPuzzListing(title, description, tags, answer, toWei(fee))
+    await tx.wait()
+    await loadData()
+  }catch(err){
+    reportError(err)
+  }
 }
 
-const updateJob = async ({ id, jobTitle, description, tags, answer }) => {
-  if (!ethereum) return alert('Please install Metamask')
-  return new Promise(async (resolve, reject) => {
-    try {
-      const contract = await getEthereumContract()
-      tx = await contract.updateJob(id, jobTitle, description, tags, answer)
-      await tx.wait()
-
-      await loadData()
-      resolve(tx)
-    } catch (err) {
-      reportError(err)
-      reject(err)
-    }
-  })
-}
-
-const deleteJob = async (id) => {
-  if (!ethereum) return alert('Please install Metamask')
-  return new Promise(async (resolve, reject) => {
-    try {
-      const contract = await getEthereumContract()
-      tx = await contract.deleteJob(id)
-      await tx.wait()
-
-      await loadData()
-      resolve(tx)
-    } catch (err) {
-      reportError(err)
-      reject(err)
-    }
-  })
-}
-
-const bidForJob = async (id, answer) => {
-  if (!ethereum) throw new Error('Please install Metamask')
-
+// compute entry fee
+export const getEntryFee = async (pId) => {
   const contract = await getEthereumContract()
-  const tx = await contract.bidForJob(id, answer)
+  const fee = await contract.getEntryFee(pId)
+  return fromWei(fee)
+}
+
+// delete a puzzle
+export const deletePuzzle = async (id) => {
+  const contract = await getEthereumContract()
+  const tx = await contract.deleteJob(id)
   await tx.wait()
-
-  await getJobs()
-  return tx
 }
 
-
-const acceptBid = async (id, jId, bidder) => {
-  if (!ethereum) return alert('Please install Metamask')
-  return new Promise(async (resolve, reject) => {
-    try {
-      const contract = await getEthereumContract()
-      tx = await contract.acceptBid(id, jId, bidder)
-      await tx.wait()
-
-      await loadData()
-      await getBidders(jId)
-      resolve(tx)
-    } catch (err) {
-      reportError(err)
-      reject(err)
-    }
-  })
+// update a puzzle
+export const updatePuzzle = async ({ id, title, description, tags, answer }) => {
+  const contract = await getEthereumContract()
+  const tx = await contract.updateJob(id, title, description, tags, answer)
+  await tx.wait()
 }
 
-const dispute = async (id) => {
-  if (!ethereum) return alert('Please install Metamask')
-  return new Promise(async (resolve, reject) => {
-    try {
-      const contract = await getEthereumContract()
-      tx = await contract.dispute(id)
-      await tx.wait()
-
-      await getJob(id)
-      resolve(tx)
-    } catch (err) {
-      reportError(err)
-      reject(err)
-    }
-  })
+// attempt a puzzle
+export const attemptPuzzle = async ({ id, guess }) => {
+  const contract = await getEthereumContract()
+  const tx = await contract.attemptPuzzle(id, guess)
+  await tx.wait()
 }
 
-const resolved = async (id) => {
-  if (!ethereum) return alert('Please install Metamask')
-  return new Promise(async (resolve, reject) => {
-    try {
-      const contract = await getEthereumContract()
-      tx = await contract.resolved(id)
-      await tx.wait()
-
-      await getJob(id)
-      resolve(tx)
-    } catch (err) {
-      reportError(err)
-      reject(err)
-    }
-  })
+// claim expired reward
+export const claimExpiredReward = async (id) => {
+  const contract = await getEthereumContract()
+  const tx = await contract.claimExpiredReward(id)
+  await tx.wait()
 }
 
-const revoke = async (jId, id) => {
-  if (!ethereum) return alert('Please install Metamask')
-  return new Promise(async (resolve, reject) => {
-    try {
-      const contract = await getEthereumContract()
-      tx = await contract.revoke(jId, id)
-      await tx.wait()
-
-      await getJob(id)
-      resolve(tx)
-    } catch (err) {
-      reportError(err)
-      reject(err)
-    }
-  })
+// count total attempts
+export const countTotalBids = async (id) => {
+  const contract = await getEthereumContract()
+  return (await contract.countTotalBids(id)).toNumber()
 }
 
-const payout = async (id) => {
-  if (!ethereum) return alert('Please install Metamask')
-  return new Promise(async (resolve, reject) => {
-    try {
-      const contract = await getEthereumContract()
-      tx = await contract.payout(id)
-      await tx.wait()
-
-      await getMyJobs()
-      resolve(tx)
-    } catch (err) {
-      reportError(err)
-      reject(err)
-    }
-  })
-}
-
-const bidStatus = async (id) => {
-  if (!ethereum) return alert('Please install Metamask')
-  try {
-    const contract = await getEthereumContract()
-    const status = await contract.bidStatus(id)
-    setGlobalState('status', status)
-  } catch (err) {
-    reportError(err)
+// Getters
+export const getAllPuzzle = async () => {
+  const contract = await getEthereumContract()
+  const [all, rel] = await contract.getAllPuzzle()
+  return {
+    puzzles: all.map(p => ({
+      ...p,
+      prize: fromWei(p.prize)
+    })),
+    relations: rel.map(r => r.toNumber())
   }
 }
 
-const bidPassStatus = async (jobId) => {
-  if (!window.ethereum) {
-    alert('Please install MetaMask')
-    return
-  }
-  try {
-    const contract = await getEthereumContract()
-    const [hasUserPassed, hasAnyonePassed] = await contract.bidPassStatus(
-      jobId,
-      // assume you already have connectedAccount in your store
-      getGlobalState('connectedAccount')
-    )
-    setGlobalState('hasUserPassed', hasUserPassed)
-    setGlobalState('hasAnyonePassed', hasAnyonePassed)
-  } catch (err) {
-    console.error(err)
-    reportError(err)
-  }
+export const getMyRelationshipWithPuzzle = async (id) => {
+  const contract = await getEthereumContract()
+  return (await contract.getMyRelationshipWithPuzzle(id)).toNumber()
 }
 
-const getBidders = async (id) => {
-  if (!ethereum) return alert('Please install Metamask')
-  try {
-    const contract = await getEthereumContract()
-    const bidders = await contract.getBidders(id)
-    setGlobalState('bidders', structuredBidder(bidders))
-  } catch (err) {
-    reportError(err)
-  }
-}
-
-const getFreelancers = async (id) => {
-  if (!ethereum) return alert('Please install Metamask')
-  try {
-    const contract = await getEthereumContract()
-    const freelancers = await contract.getFreelancers(id)
-    setGlobalState('freelancers', structuredFreelancers(freelancers))
-  } catch (err) {
-    reportError(err)
-  }
-}
-
-const getAcceptedFreelancer = async (id) => {
-  if (!ethereum) return alert('Please install Metamask')
-  try {
-    // const contract = await getEthereumContract()
-    // const freelancer = await contract.getAcceptedFreelancer(id)
-    // setGlobalState('freelancer', structuredFreelancers([freelancer])[0])
-  } catch (err) {
-    reportError(err)
-  }
-}
-
-const getJobs = async () => {
-  if (!ethereum) return alert('Please install Metamask')
-  try {
-    const contract = await getEthereumContract()
-    const jobs = await contract.getJobs()
-    console.log('链上 jobs(raw):', jobs);
-    setGlobalState('jobs', structuredJobs(jobs))
-    console.log('链上 jobs(structured):', structuredJobs(jobs));
-    // setGlobalState('jobs', structured);
-  } catch (err) {
-    reportError(err)
-  }
-}
-
-const getMyJobs = async () => {
-  if (!ethereum) return alert('Please install Metamask')
-  try {
-    const contract = await getEthereumContract()
-    const jobs = await contract.getMyJobs()
-    setGlobalState('myjobs', structuredJobs(jobs))
-  } catch (err) {
-    reportError(err)
-  }
-}
-const getMyGigs = async () => {
-  if (!ethereum) return alert('Please install Metamask')
-  try {
-    const contract = await getEthereumContract()
-    const jobs = await contract.getAssignedJobs()
-    setGlobalState('mygigs', structuredJobs(jobs))
-  } catch (err) {
-    reportError(err)
-  }
-}
-const getMyBidJobs = async () => {
-  if (!ethereum) return alert('Please install Metamask')
-  try {
-    const contract = await getEthereumContract()
-    const jobs = await contract.getJobsForBidder()
-    setGlobalState('mybidjobs', structuredJobs(jobs))
-  } catch (err) {
-    reportError(err)
-  }
-}
-
-const getJob = async (id) => {
-  if (!ethereum) return alert('Please install Metamask')
-  try {
-    const contract = await getEthereumContract()
-    const job = await contract.getJob(id)
-    setGlobalState('job', structuredJobs([job])[0])
-  } catch (err) {
-    reportError(err)
-  }
-}
-
-const loadData = async () => {
-  await getJobs()
-  await getMyJobs()
-  await getMyGigs()
-  await getMyBidJobs()
-}
-
-const structuredJobs = (jobs) =>
-  jobs
-    .map((job) => ({
-      id: job.id.toNumber(),
-      owner: job.owner.toLowerCase(),
-      freelancer: job.freelancer.toLowerCase(),
-      jobTitle: job.jobTitle,
-      description: job.description,
-      tags: job.tags.split(','),
-      prize: fromWei(job.prize),
-      paidOut: job.paidOut,
-      timestamp: job.timestamp,
-      listed: job.listed,
-      disputed: job.disputed,
-      bidders: job.bidders.map((address) => address.toLowerCase()),
-    }))
-    .sort((a, b) => b.timestamp - a.timestamp)
-
-const structuredBidder = (bidders) =>
-  bidders.map((bidder) => ({
-    id: bidder.id.toNumber(),
-    jId: bidder.jId.toNumber(),
-    account: bidder.account.toLowerCase(),
+export const getMyAttempted = async () => {
+  const contract = await getEthereumContract()
+  const attempts = await contract.getMyAttempted()
+  return attempts.map(a => ({
+    id: a.id.toNumber(),
+    pId: a.pId.toNumber(),
+    pass: a.pass
   }))
+}
 
-const structuredFreelancers = (freelancers) =>
-  freelancers.map((freelancer) => ({
-    id: freelancer.id.toNumber(),
-    jId: freelancer.jId.toNumber(),
-    account: freelancer.account.toLowerCase(),
-    bool: freelancer.isAssigned,
-  }))
+export const getMyAttemptedPuzzle = async () => {
+  const contract = await getEthereumContract()
+  const ps = await contract.getMyAttemptedPuzzle()
+  return ps.map(p => ({ ...p, prize: fromWei(p.prize) }))
+}
 
-export {
-  connectWallet,
-  isWalletConnected,
-  addJobListing,
-  updateJob,
-  deleteJob,
-  bidForJob,
-  acceptBid,
-  dispute,
-  resolved,
-  revoke,
-  payout,
-  bidStatus,
-  bidPassStatus,
-  getBidders,
-  getFreelancers,
-  getAcceptedFreelancer,
-  getJobs,
-  getMyJobs,
-  getJob,
-  getMyBidJobs,
-  getMyGigs,
-  loadData,
+export const getMyPuzzle = async () => {
+  const contract = await getEthereumContract()
+  const ps = await contract.getMyPuzzle()
+  return ps.map(p => ({ ...p, prize: fromWei(p.prize) }))
+}
+
+export const getPuzzle = async (id) => {
+  const contract = await getEthereumContract()
+  const p = await contract.getPuzzle(id)
+  return { ...p, prize: fromWei(p.prize) }
 }

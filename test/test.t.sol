@@ -1,120 +1,234 @@
-// // SPDX-License-Identifier: MIT
-// pragma solidity ^0.8.0;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.20;
 
-// import "forge-std/Test.sol";
-// import "../src/DappWorks.sol";
+import "forge-std/Test.sol";
+import "forge-std/console.sol";
 
-// contract DappWorksTest is Test {
-// DappWorks dw;
-// address deployer;
-// address client1;
-// address client2;
-// address freelancer1;
-// address freelancer2;
+import {PUZToken} from "../src/PUZToken.sol";
+import {TokenManager} from "../src/TokenManager.sol";
+import {TokenManagerFactory} from "../src/TokenManagerFac.sol";
+import {CreatePuzz} from "../src/CreatePuzz.sol";
 
-// function setUp() public {
-//     deployer = address(this);
-//     client1 = address(0x1);
-//     client2 = address(0x2);
-//     freelancer1 = address(0x3);
-//     freelancer2 = address(0x4);
-//     vm.deal(client1, 1 ether);
-//     vm.deal(client2, 1 ether);
-//     vm.deal(freelancer1, 1 ether);
-//     vm.deal(freelancer2, 1 ether);
-//     dw = new DappWorks();
-// }
+//連前端測試可以參考這個去做
+contract CreatePuzzTest is Test {
+    PUZToken public token;
+    TokenManagerFactory public factory;
+    CreatePuzz public puzz;
 
-// function testJobCreationAndFetch() public {
-//     vm.prank(client1);
-//     dw.addJobListing("Content creator", "Desc...", "Tag1,Tag2", { value: 0.3 ether });
+    address public user1;
+    address public user2;
 
-//     DappWorks.JobStruct[] memory jobs = dw.getJobs();
-//     assertEq(jobs.length, 1);
+    function setUp() public {
+        token = new PUZToken("PUZ", "PUZ", 1000 ether);
 
-//     DappWorks.JobStruct memory job = dw.getJob(1);
-//     assertEq(job.id, 1);
-//     assertEq(job.tags, "Tag1,Tag2");
-// }
+        puzz = new CreatePuzz(address(token), address(factory));
+        factory = new TokenManagerFactory(address(token), address(puzz));
+        puzz.setFactory(address(factory)); // 最後把 factory 設給 puzz
 
-// function testUpdateAndDelete() public {
-//     vm.prank(client1);
-//     dw.addJobListing("Title", "Desc", "A,B,C", { value: 0.3 ether });
+        user1 = vm.addr(1);
+        user2 = vm.addr(2);
 
-//     // update
-//     vm.prank(client1);
-//     dw.updateJob(1, "Title", "Desc", "X,Y,Z");
-//     DappWorks.JobStruct memory updated = dw.getJob(1);
-//     assertEq(updated.tags, "X,Y,Z");
+        token.transfer(user1, 100 ether);
+        token.transfer(user2, 100 ether);
 
-//     // delete
-//     vm.prank(client1);
-//     dw.deleteJob(1);
-//     DappWorks.JobStruct[] memory afterDel = dw.getJobs();
-//     assertEq(afterDel.length, 0);
-// }
+        vm.prank(user1);
+        token.approve(address(puzz), type(uint256).max);
+        vm.prank(user2);
+        token.approve(address(puzz), type(uint256).max);
 
-// function testBiddingAndAssignment() public {
-//     vm.prank(client1);
-//     dw.addJobListing("Job", "Desc", "T1,T2", { value: 0.3 ether });
+        vm.prank(user1);
+        puzz.registerOrLogin();
+        vm.prank(user2);
+        puzz.registerOrLogin();
+    }
 
-//     // bid
-//     vm.prank(freelancer1);
-//     dw.bidForJob(1);
-//     DappWorks.BidStruct[] memory bids = dw.getBidders(1);
-//     assertEq(bids.length, 1);
-//     assertEq(bids[0].account, freelancer1);
+    function testPuzzleFlowCorrectAnswer() public {
+        vm.prank(user1);
+        //user1出題，扣兩塊
+        uint256 puzId = puzz.createAndAddWithNewManager("title", "desc", "tag", "42", 2 ether);
+        console.log("Puzzle ID:", puzId);
 
-//     // accept
-//     vm.prank(client1);
-//     dw.acceptBid(1, 1, freelancer1);
-//     DappWorks.FreelancerStruct[] memory fls = dw.getFreelancers(1);
-//     assertEq(fls.length, 1);
-//     assertEq(fls[0].account, freelancer1);
+        vm.prank(user2);
+        puzz.attemptPuzzle(puzId, "24"); //user2答錯，扣入場費5塊
 
-//     DappWorks.JobStruct[] memory asg = dw.getAssignedJobs();
-//     assertEq(asg.length, 1);
-// }
+        vm.prank(user2);
+        puzz.attemptPuzzle(puzId, "42"); //user2答對，先扣掉5.5塊，發還(2+5+5.5)*0.9
 
-// function testDisputeRevokeResolve() public {
-//     vm.prank(client1);
-//     dw.addJobListing("J","D","T",{ value: 0.3 ether });
-//     vm.prank(freelancer1);
-//     dw.bidForJob(1);
-//     vm.prank(client1);
-//     dw.acceptBid(1, 1, freelancer1);
+        uint256 balance1 = token.balanceOf(user1);
+        uint256 balance2 = token.balanceOf(user2);
+        uint256 contractBal = token.balanceOf(address(puzz));
 
-//     // dispute
-//     vm.prank(client1);
-//     dw.dispute(1);
-//     (, , , , , , , , bool disputed, ) = dw.getJob(1);
-//     assertTrue(disputed);
+        console.log("user1 balance:", balance1);
+        console.log("user2 balance:", balance2);
+        console.log("CreatePuzz contract balance:", contractBal);
 
-//     // revoke
-//     vm.prank(deployer);
-//     dw.revoke(1, 0);
-//     (, , , , , , , , bool listed, ) = dw.getJob(1);
-//     assertTrue(listed);
+        //拿來看console確定有沒有算錯的，沒有意義
+        assertEq(puzz.puzzShowStatus(puzId), false);
+    }
 
-//     // resolve
-//     vm.prank(deployer);
-//     dw.resolved(1);
-//     (, , , , , , , , disputed, ) = dw.getJob(1);
-//     assertFalse(disputed);
-// }
+    function testPuzzleClaimAfterTimeout() public {
+        vm.prank(user1);
+        //user1出題，扣兩塊
+        uint256 puzId = puzz.createAndAddWithNewManager("title", "desc", "tag", "42", 2 ether);
+        console.log("Puzzle ID:", puzId);
 
-// function testPayout() public {
-//     vm.prank(client1);
-//     dw.addJobListing("Job","Desc","T",{ value: 0.3 ether });
-//     vm.prank(freelancer1);
-//     dw.bidForJob(1);
-//     vm.prank(client1);
-//     dw.acceptBid(1, 1, freelancer1);
+        //user2期限內答題但答錯，扣五塊給獎金池
+        vm.prank(user2);
+        puzz.attemptPuzzle(puzId, "wrong");
 
-//     vm.prank(client1);
-//     dw.payout(1);
-//     (, , , address fl, , , , , , bool paidOut) = dw.getJob(1);
-//     assertTrue(paidOut);
-// }
+        //用來測試的時間快轉
+        vm.warp(block.timestamp + 31 days);
 
-// }
+        //逾期無人答對，獎金90%發還出題者
+        uint256 before = token.balanceOf(user1);
+        vm.prank(user1);
+        puzz.claimExpiredReward(puzId);
+        uint256 afterClaim = token.balanceOf(user1);
+
+        console.log("user1 got back reward:", afterClaim - before);
+        console.log("user1 balance:", afterClaim);
+        console.log("user2 balance:", token.balanceOf(user2));
+
+        //拿來看console確定有沒有算錯的，沒有意義
+        assertEq(puzz.puzzShowStatus(puzId), false);
+    }
+
+    function testPrizePoolAndBurnLogic() public {
+        vm.prank(user1);
+        uint256 puzId = puzz.createAndAddWithNewManager("title", "desc", "tag", "42", 2 ether);
+        console.log("Puzzle ID:", puzId);
+
+        uint256 supplyBefore = token.totalSupply();
+
+        vm.prank(user2);
+        puzz.attemptPuzzle(puzId, "wrong");
+        vm.prank(user2);
+        puzz.attemptPuzzle(puzId, "42");
+
+        uint256 supplyAfter = token.totalSupply();
+        uint256 burnAmount = supplyBefore - supplyAfter;
+
+        console.log("Total burn:", burnAmount);
+        console.log("user1 balance:", token.balanceOf(user1));
+        console.log("user2 balance:", token.balanceOf(user2));
+
+        //拿來看console確定有沒有算錯的，沒有意義
+        assertGt(burnAmount, 0);
+    }
+
+    function testMultiplePuzzleIds() public {
+        vm.prank(user1);
+        uint256 id1 = puzz.createAndAddWithNewManager("title1", "desc", "tag", "42", 2 ether);
+        vm.prank(user1);
+        uint256 id2 = puzz.createAndAddWithNewManager("title2", "desc", "tag", "84", 3 ether);
+
+        console.log("Puzzle ID 1:", id1); // 應該是 1
+        console.log("Puzzle ID 2:", id2); // 應該是 2
+
+        //拿來看console確定有沒有算錯的，沒有意義
+        assertEq(false, false);
+    }
+
+// 測試getters 
+    function testGetPuzzle() public {
+    vm.prank(user1);
+    uint256 puzId = puzz.createAndAddWithNewManager("title", "desc", "tag", "42", 2 ether);
+
+    vm.prank(user2);
+    puzz.attemptPuzzle(puzId, "42");
+
+    CreatePuzz.PuzzStruct memory p = puzz.getPuzzle(puzId);
+    assertEq(p.id, puzId);
+    assertEq(p.owner, user1);
+    assertEq(p.paidOut, true);
+    }
+
+    function testGetMyPuzzle() public {
+        vm.prank(user1);
+        uint256 puzId = puzz.createAndAddWithNewManager("title", "desc", "tag", "42", 2 ether);
+
+        vm.prank(user1);
+        CreatePuzz.PuzzStruct[] memory myPuzzles = puzz.getMyPuzzle();
+        assertEq(myPuzzles.length, 1);
+        assertEq(myPuzzles[0].id, puzId);
+    }
+
+    function testGetMyAttempted() public {
+        vm.prank(user1);
+        uint256 puzId = puzz.createAndAddWithNewManager("title", "desc", "tag", "42", 2 ether);
+
+        vm.prank(user2);
+        puzz.attemptPuzzle(puzId, "wrong");
+        vm.prank(user2);
+        puzz.attemptPuzzle(puzId, "42");
+
+        vm.prank(user2);
+        CreatePuzz.Attempt[] memory attempts = puzz.getMyAttempted();
+        assertEq(attempts.length, 2);
+        assertEq(attempts[1].pass, true);
+    }
+
+    function testGetMyAttemptedPuzzle() public {
+        vm.prank(user1);
+        uint256 puzId = puzz.createAndAddWithNewManager("title", "desc", "tag", "42", 2 ether);
+
+        vm.prank(user2);
+        puzz.attemptPuzzle(puzId, "42");
+
+        vm.prank(user2);
+        CreatePuzz.PuzzStruct[] memory attemptedPuzzles = puzz.getMyAttemptedPuzzle();
+        assertEq(attemptedPuzzles.length, 1);
+        assertEq(attemptedPuzzles[0].id, puzId);
+    }
+
+    function testGetAllPuzzleWithRelation() public {
+        vm.prank(user1);
+        uint256 puzId = puzz.createAndAddWithNewManager("title", "desc", "tag", "42", 2 ether);
+
+        vm.prank(user2);
+        puzz.attemptPuzzle(puzId, "42");
+
+        vm.prank(user2);
+        (CreatePuzz.PuzzStruct[] memory puzzles, uint256[] memory relations) = puzz.getAllPuzzle();
+
+        assertEq(puzzles.length, 1);
+        assertEq(relations.length, 1);
+        assertEq(relations[0], 1); // 1 = 已解開
+    }
+
+    function testGetMyRelationshipWithPuzzle() public {
+        vm.prank(user1);
+        uint256 puzId = puzz.createAndAddWithNewManager("title", "desc", "tag", "42", 2 ether);
+
+        vm.prank(user2);
+        puzz.attemptPuzzle(puzId, "wrong");
+
+        vm.warp(block.timestamp + 31 days);
+        vm.prank(user1);
+        puzz.claimExpiredReward(puzId);
+
+        vm.prank(user2);
+        uint8 relation = puzz.getMyRelationshipWithPuzzle(puzId);
+        assertEq(relation, 2); // 2 = 嘗試過但未解開
+    }
+
+    function testGetAllPuzzleAfterPuzzleClosed() public {
+        vm.prank(user1);
+        uint256 puzId = puzz.createAndAddWithNewManager("title", "desc", "tag", "42", 2 ether);
+
+        vm.prank(user2);
+        puzz.attemptPuzzle(puzId, "wrong");
+
+        vm.warp(block.timestamp + 31 days);
+        vm.prank(user1);
+        puzz.claimExpiredReward(puzId);
+
+        vm.prank(user1);
+        (CreatePuzz.PuzzStruct[] memory puzzles, ) = puzz.getAllPuzzle();
+
+        // 應為 0，因為該題已被關閉 (puzzShowStatus == false)
+        assertEq(puzzles.length, 0);
+    }
+
+
+}
