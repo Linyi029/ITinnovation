@@ -45,13 +45,7 @@ contract CreatePuzzTest is Test {
     function testPuzzleFlowCorrectAnswer() public {
         vm.prank(user1);
         //user1出題，扣兩塊
-        uint256 puzId = puzz.createAndAddWithNewManager(
-            "title",
-            "desc",
-            "tag",
-            "42",
-            2 ether
-        );
+        uint256 puzId = puzz.createAndAddWithNewManager("title", "desc", "tag", "42", 2 ether);
         console.log("Puzzle ID:", puzId);
 
         vm.prank(user2);
@@ -75,13 +69,7 @@ contract CreatePuzzTest is Test {
     function testPuzzleClaimAfterTimeout() public {
         vm.prank(user1);
         //user1出題，扣兩塊
-        uint256 puzId = puzz.createAndAddWithNewManager(
-            "title",
-            "desc",
-            "tag",
-            "42",
-            2 ether
-        );
+        uint256 puzId = puzz.createAndAddWithNewManager("title", "desc", "tag", "42", 2 ether);
         console.log("Puzzle ID:", puzId);
 
         //user2期限內答題但答錯，扣五塊給獎金池
@@ -107,13 +95,7 @@ contract CreatePuzzTest is Test {
 
     function testPrizePoolAndBurnLogic() public {
         vm.prank(user1);
-        uint256 puzId = puzz.createAndAddWithNewManager(
-            "title",
-            "desc",
-            "tag",
-            "42",
-            2 ether
-        );
+        uint256 puzId = puzz.createAndAddWithNewManager("title", "desc", "tag", "42", 2 ether);
         console.log("Puzzle ID:", puzId);
 
         uint256 supplyBefore = token.totalSupply();
@@ -126,8 +108,6 @@ contract CreatePuzzTest is Test {
         uint256 supplyAfter = token.totalSupply();
         uint256 burnAmount = supplyBefore - supplyAfter;
 
-        
-
         console.log("Total burn:", burnAmount);
         console.log("user1 balance:", token.balanceOf(user1));
         console.log("user2 balance:", token.balanceOf(user2));
@@ -138,21 +118,9 @@ contract CreatePuzzTest is Test {
 
     function testMultiplePuzzleIds() public {
         vm.prank(user1);
-        uint256 id1 = puzz.createAndAddWithNewManager(
-            "title1",
-            "desc",
-            "tag",
-            "42",
-            2 ether
-        );
+        uint256 id1 = puzz.createAndAddWithNewManager("title1", "desc", "tag", "42", 2 ether);
         vm.prank(user1);
-        uint256 id2 = puzz.createAndAddWithNewManager(
-            "title2",
-            "desc",
-            "tag",
-            "84",
-            3 ether
-        );
+        uint256 id2 = puzz.createAndAddWithNewManager("title2", "desc", "tag", "84", 3 ether);
 
         console.log("Puzzle ID 1:", id1); // 應該是 1
         console.log("Puzzle ID 2:", id2); // 應該是 2

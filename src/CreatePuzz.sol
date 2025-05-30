@@ -27,11 +27,11 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
         bool paidOut;
         uint256 timestamp;
         bool listed;
-        uint256 disputed; //optional 
-        address[] disputers; //optional 
+        uint256 disputed; //optional
+        address[] disputers; //optional
         string answer;
         uint256 timestamp_end;
-        uint256 timestamp_verified; //optional 
+        uint256 timestamp_verified; //optional
         address puzPrizeManager;
     }
 
@@ -73,10 +73,7 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
 
     function registerOrLogin() public {
         if (!isRegistered[msg.sender]) {
-            users[msg.sender] = UserStruct({
-                id: nextUserId,
-                account: msg.sender
-            });
+            users[msg.sender] = UserStruct({id: nextUserId, account: msg.sender});
             isRegistered[msg.sender] = true;
             nextUserId++;
         }
@@ -126,35 +123,22 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
         return entryBaseFee + puzzAttempts[pId].length * entryStepFee;
     }
 
-    function attemptPuzzle(
-        uint256 pId,
-        string memory guess
-    ) public nonReentrant {
+    function attemptPuzzle(uint256 pId, string memory guess) public nonReentrant {
         require(puzzShowStatus[pId], "Puzzle not active");
         uint256 numAttempts = puzzAttempts[pId].length;
         uint256 entryFee = getEntryFee(pId);
 
         //交錢
-        IERC20(token).transferFrom(
-            msg.sender,
-            puzzListings[pId].puzPrizeManager,
-            entryFee
-        );
+        IERC20(token).transferFrom(msg.sender, puzzListings[pId].puzPrizeManager, entryFee);
 
         puzzListings[pId].prize += entryFee;
 
-        bool pass = (keccak256(abi.encodePacked(guess)) ==
-            keccak256(abi.encodePacked(puzzListings[pId].answer)));
+        bool pass = (keccak256(abi.encodePacked(guess)) == keccak256(abi.encodePacked(puzzListings[pId].answer)));
 
         attemptCount[pId][msg.sender] += 1;
         puzzAtmptIdByUser[msg.sender].push(pId);
 
-        Attempt memory newAttempt = Attempt({
-            id: numAttempts,
-            pId: pId,
-            account: msg.sender,
-            pass: pass
-        });
+        Attempt memory newAttempt = Attempt({id: numAttempts, pId: pId, account: msg.sender, pass: pass});
         puzzAttempts[pId].push(newAttempt);
 
         if (pass) {
@@ -162,10 +146,7 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
             uint256 reward = (totalPool * (100 - burnRate)) / 100;
             uint256 burn = totalPool - reward;
 
-            TokenManager(puzzListings[pId].puzPrizeManager).rewardUser(
-                msg.sender,
-                reward
-            );
+            TokenManager(puzzListings[pId].puzPrizeManager).rewardUser(msg.sender, reward);
             TokenManager(puzzListings[pId].puzPrizeManager).burnToken(burn);
 
             puzzListings[pId].paidOut = true;
@@ -174,9 +155,7 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
     }
 
     //題目逾期，90%返還給出題者
-    function claimExpiredReward(
-        uint256 pId
-    ) external nonReentrant onlyPuzCreater(pId) {
+    function claimExpiredReward(uint256 pId) external nonReentrant onlyPuzCreater(pId) {
         PuzzStruct storage puzz = puzzListings[pId];
         require(!puzz.paidOut, "Already paid out");
         require(block.timestamp > puzz.timestamp_end, "Puzzle not expired yet");
