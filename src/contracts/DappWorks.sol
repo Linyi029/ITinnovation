@@ -1,499 +1,362 @@
-// trigger recompilation
-// trigger recompilation
-//SPDX-License-Identifier:MIT
-pragma solidity >=0.7.0 <0.9.0;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+interface ITokenManager {
+    function takeDeposit(address from, uint256 amount) external;
+    function rewardUser(address to, uint256 amount) external;
+    function burnToken(uint256 amount) external;
+}
 
 contract DappWorks is Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
 
-    Counters.Counter private _jobCounter;
+    Counters.Counter private _puzzCounter;
 
-    struct JobStruct/* puzzle */ {
-        uint id;
+    struct PuzzStruct {
+        uint256 id;
         address owner;
-        address freelancer; // don't need
-        string jobTitle;
+        string title;
         string description;
         string tags;
-        uint prize; // 可能要是erc20的單位
-        bool paidOut; //被解開與否，可改名為solved
-        uint timestamp; //創建時間，可改名為timestamp_start
-        bool listed; //還缺不缺人，缺就列出來，不要動，預設為true
-        uint disputed; //被檢舉與否，可改成被檢舉幾次
-        address[] bidders; //改成disputers
-        // new features
+        uint256 prize;
+        bool paidOut; //被解開與否
+        uint256 timestamp; //創建日期
+        bool listed; //要不要列再頁面上，預設true，//puzzle有沒有被刪除(刪除了還在鏈上，只是listed、puzzShowStatus會是false)
+        uint256 disputed; //被檢舉幾次
+        address[] disputers; //被那些人檢舉
         string answer;
-        uint timestamp_end; // 創建者可自己訂，預設1個月
-        uint timestamp_verified; // end + 7天
-
+        uint256 timestamp_end; // 創建者可自己訂，預設1個月
+        uint256 timestamp_verified; // end + 7天
     }
 
-    struct FreelancerStruct/* user */ {
-        uint id;
-        // uint jId;//don't need
+    struct UserStruct {
+        uint256 id;
         address account;
-        // bool isAssigned; //don't need
-        // new features
-        // uint money //有多少代幣，可能要是erc20的單位
     }
 
-    struct BidStruct/* attempt */ {
-        uint id;
-        uint jId;
+    //嘗試紀錄
+    struct Attempt {
+        uint256 id;
+        uint256 pId;
         address account;
-        // new features
         bool pass;
     }
 
-    uint public platformCharge = 5;
+    ITokenManager public tokenManager;
+    uint256 public burnRate = 10;
 
-    mapping(uint => JobStruct) jobListings; //puzzleListings(key=id)
-    mapping(uint => FreelancerStruct[]) freelancers; //don't need
-    mapping(uint => BidStruct[]) jobBidders; // 某個job被多個user bid
+    uint256 public entryBaseFee = 5e18;
+    uint256 public entryStepFee = 5e17; // 0.5 PUZ
 
-    mapping(uint => bool) jobListingExists; // job還開不開放作答
-    mapping(uint => mapping(address => bool)) public hasPlacedBid;
+    mapping(uint256 => PuzzStruct) public puzzListings; //所有Puzzles
+    mapping(uint256 => Attempt[]) public puzzAttempts; //某個puzzle被多少人嘗試過
+    mapping(uint256 => bool) public puzzShowStatus; //puzzle有沒有被刪除(刪除了還在鏈上，只是listed、puzzShowStatus會是false)
+    mapping(uint256 => mapping(address => uint256)) public attemptCount; // 原hasPlaceBid
+    mapping(address => uint256[]) public puzzAtmptIdByUser;  // 一個user 嘗試答過哪些puzz
 
-    mapping(address => uint[]) public jobsBidByUser; // 一個user bid過哪些job
+    uint256 public nextUserId = 1;
+    mapping(address => UserStruct) public users;
+    mapping(address => bool) public isRegistered;
 
-    uint public nextUserId = 1;
-    mapping(address => FreelancerStruct) public users;    // address → user
-    mapping(address => bool)       public isRegistered; // quick check
-
-
-    modifier onlyJobOwner(uint id) {
-        require(jobListings[id].owner == msg.sender, "Unauthorized entity");
+    modifier onlyPuzCreater(uint256 id) {
+        require(puzzListings[id].owner == msg.sender, "Not puzzle creator");
         _;
     }
 
-    function registerOrLogin() public {
-        // 如果已经注册，什么都不做（算登录）
-        if (isRegistered[msg.sender]) {
-            return;
-        }
-        // 否则就是注册新用户
-        users[msg.sender] = FreelancerStruct({
-            id      : nextUserId,
-            account : msg.sender
-        });
-        isRegistered[msg.sender] = true;
-        nextUserId++;
+    constructor(address _tokenManager) {
+        tokenManager = ITokenManager(_tokenManager);
     }
 
+    function registerOrLogin() public {
+        if (!isRegistered[msg.sender]) {
+            users[msg.sender] = UserStruct({id: nextUserId, account: msg.sender});
+            isRegistered[msg.sender] = true;
+            nextUserId++;
+        }
+    }
 
-    function addJobListing(
-        string memory jobTitle,
+    function addPuzzListing(
+        string memory title,
         string memory description,
         string memory tags,
-        // new features
-        string memory answer
-        // uint timestamp_end,
-        // uint timestamp_verified
-    ) public payable {
-        require(bytes(jobTitle).length > 0, "Please provide a job title");
+        string memory answer,
+        uint256 fixedFee // 除去
+        // uint256 duration // 單位：天
+    ) public {
+        require(bytes(title).length > 0, "Please provide a title");
         require(bytes(description).length > 0, "Please provide a description");
         require(bytes(tags).length > 0, "Please provide tags");
-        require(msg.value > 0 ether, "Insufficient funds");
+        require(fixedFee > 0, "Fixed fee required");
 
-        // Increment the counter before using the current value
-        _jobCounter.increment();
-        uint jobId = _jobCounter.current();
+        tokenManager.takeDeposit(msg.sender, fixedFee);
 
-        JobStruct memory jobListing;
+        _puzzCounter.increment();
+        uint256 puzId = _puzzCounter.current();
 
-        jobListing.id = jobId;
-        jobListing.owner = msg.sender;
-        jobListing.jobTitle = jobTitle;
-        jobListing.description = description;
-        jobListing.tags = tags;
-        jobListing.prize = msg.value;
-        jobListing.listed = true;
-        jobListing.timestamp = currentTime();
-        // new features
-        jobListing.answer = answer;
-        jobListing.timestamp_end = currentTime() + 30 days;
-        jobListing.timestamp_verified = currentTime() +7 days;
+        PuzzStruct storage puzz = puzzListings[puzId];
+        puzz.id = puzId;
+        puzz.owner = msg.sender;
+        puzz.title = title;
+        puzz.description = description;
+        puzz.tags = tags;
+        puzz.prize = fixedFee;
+        puzz.paidOut = false;
+        puzz.timestamp = block.timestamp;
+        puzz.listed = true;
+        puzz.answer = answer;
+        puzz.timestamp_end = block.timestamp + 30 days; //之後可嘗試讓出題者自己設定(+ duration days)
+        puzz.timestamp_verified = block.timestamp + 7 days;
 
-        jobListings[jobId] = jobListing;
-        jobListingExists[jobId] = true;
+        // deel with mapping
+        puzzListings[puzId] = puzz;
+        puzzShowStatus[puzId] = true;
     }
 
-    function deleteJob(uint id) public {
-        require(jobListingExists[id], "This job listing doesn't exist");
-        require(jobListings[id].listed, "This job has been taken");
-        require(!jobListings[id].paidOut, "This job has been paid out");
+    function getEntryFee(uint256 pId) public view returns (uint256) {
+        return entryBaseFee + puzzAttempts[pId].length * entryStepFee;
+    }
 
-        jobListingExists[id] = false;
+    function deleteJob(uint256 id) public {
+        require(puzzShowStatus[id], "This puzzle doesn't exist"); // 2擇1
+        require(puzzListings[id].listed, "This puzzle doesn't exist"); // 2擇1
+        require(!puzzListings[id].paidOut, "This job has been solved");
 
-        payTo(jobListings[id].owner, jobListings[id].prize);
+        puzzShowStatus[id] = false;
+        puzzListings[id].listed = false;
+
+        //退錢給出題者
+        // payTo(jobListings[id].owner, jobListings[id].prize);
     }
 
     function updateJob(
-        uint id,
+        uint256 id,
         string memory jobTitle,
         string memory description,
         string memory tags,
         string memory answer
+        // uint256 memory duration
     ) public {
-        require(jobListingExists[id], "This job listing doesn't exist");
-        require(jobListings[id].listed, "This job has been taken");
-        require(!jobListings[id].paidOut, "This job has been paid out");
+        require(puzzShowStatus[id], "This puzzle doesn't exist"); // 2擇1
+        require(puzzListings[id].listed, "This puzzle doesn't exist"); // 2擇1
+        require(!puzzListings[id].paidOut, "This job has been solved");
 
-        jobListings[id].jobTitle = jobTitle;
-        jobListings[id].description = description;
-        jobListings[id].tags = tags;
-        jobListings[id].answer = answer;
+        puzzListings[id].jobTitle = jobTitle;
+        puzzListings[id].description = description;
+        puzzListings[id].tags = tags;
+        puzzListings[id].answer = answer;
+        // puzzListings[id].timestamp_end = puzzListings[id].timestamp + duration;
+
     }
 
-    function bidForJob(uint id /* job id */ , string memory answer/* 新增輸入 */) public returns (bool pass){
-        require(jobListingExists[id], "This job listing doesn't exist");
-        require(jobListings[id].owner != msg.sender, "Forbidden action!");
-        require(!jobListings[id].paidOut, "This job has been paid out");
-        require(jobListings[id].listed, "This job have been taken");
-        // require(!hasPlacedBid[id][msg.sender], "You have placed a bid already"); // 必須刪掉這個限制
+    //可重複測試，但每次測試都要交錢
+    function attemptPuzzle(uint256 pId, string memory guess) public nonReentrant {
+        require(puzzShowStatus[pId], "Puzzle not active");
+        require(puzzListings[id].owner != msg.sender, "Forbidden action!");
+        require(!puzzListings[id].paidOut, "This job has been paid out");
+        require(puzzListings[id].listed, "This job have been taken");
 
-        BidStruct memory bid;
-        bid.id = jobBidders[id].length + 1;
-        bid.jId = id;
-        bid.account = msg.sender;
+        uint256 numAttempts = puzzAttempts[pId].length;
+        uint256 entryFee = entryBaseFee + (numAttempts * entryStepFee);
+        tokenManager.takeDeposit(msg.sender, entryFee);
+
+        puzzListings[pId].prize += entryFee;
+
+        bool pass = (keccak256(abi.encodePacked(guess)) == keccak256(abi.encodePacked(puzzListings[pId].answer)));
+
+        Attempt memory newAttempt = Attempt({id: numAttempts, pId: pId, account: msg.sender, pass: pass});
         
-        // 判斷答案對不對
-        if (
-            keccak256(bytes(jobListings[id].answer)) == 
-            keccak256(bytes(answer))
-        ){
-            bid.pass = true;
-        }else{
-            bid.pass = false;
+        //maintain mapping
+        puzzAttempts[pId].push(newAttempt);
+
+        if(attemptCount[pId][msg.sender] == 0){ // 我有改
+            puzzAtmptIdByUser[msg.sender].push(pId);
+
         }
+        attemptCount[pId][msg.sender] += 1;
 
-        jobListings[id].bidders.push(msg.sender);
-        jobBidders[id].push(bid); //新增bid對應到被投標的job
+        if (pass) {
+            uint256 totalPool = puzzListings[pId].prize;
+            uint256 reward = (totalPool * (100 - burnRate)) / 100;
+            uint256 burn = totalPool - reward;
 
-        // 只在第一次對某 jobId 投標時記錄進 jobsBidByUser
-        if (!hasPlacedBid[id][msg.sender]) {
-            hasPlacedBid[id][msg.sender] = true;
-            jobsBidByUser[msg.sender].push(id);
-        }
-        return bid.pass;
-    }
+            tokenManager.rewardUser(msg.sender, reward);
+            tokenManager.burnToken(burn);
 
-    // 不需要
-    function acceptBid(
-        uint id,
-        uint jId,
-        address bidder
-    ) public onlyJobOwner(jId) {
-        // require(jobListingExists[jId], "This job listing doesn't exist");
-        // require(jobListings[jId].listed, "This job have been taken");
-        // require(!jobListings[jId].paidOut, "This job has been paid out");
-        // require(hasPlacedBid[jId][bidder], "UnIdentified bidder");
-
-        // FreelancerStruct memory freelancer;
-
-        // freelancer.id = freelancers[jId].length;
-        // freelancer.jId = jId;
-        // freelancer.account = bidder;
-        // freelancer.isAssigned = true;
-
-        // freelancers[jId].push(freelancer);
-        // jobListings[jId].freelancer = bidder;
-
-        // for (uint i = 0; i < jobBidders[jId].length; i++) {
-        //     if (jobBidders[jId][i].id != id) {
-        //         hasPlacedBid[jId][jobBidders[jId][i].account] = false;
-        //     }
-        // }
-
-        // jobListings[jId].listed = false;
-    }
-
-    function bidStatus(uint id) public view returns (bool) {
-        return hasPlacedBid[id][msg.sender];
-    }
-
-    // 新增一個 view 函式
-    function bidPassStatus(uint id, address user) public view returns (bool hasUserPassed, bool hasAnyonePassed) {
-        BidStruct[] memory bids = jobBidders[id];
-        bool userPassed = false;
-        bool someonePassed = false;
-
-        for (uint i = 0; i < bids.length; i++) {
-            if (bids[i].pass) {
-                someonePassed = true;
-            }
-            if (bids[i].account == user && bids[i].pass) {
-                userPassed = true;
-            }
-        }
-
-        return (userPassed, someonePassed);
-    }
-
-
-    function dispute(uint id) public { /** onlyJobOwner (id)  權限拿掉 */
-        require(jobListingExists[id], "This job listing doesn't exist");
-        // require(!jobListings[id].disputed, "This job already disputed"); // 必須刪掉這個限制
-        require(block.timestamp > jobListings[id].timestamp_end, "Answer time not ended");
-        require(block.timestamp < jobListings[id].timestamp_verified, "Review time ended");
-
-        //花錢擔保這題有問題
-
-        jobListings[id].disputed += 1; // 變成增加次數
-    }
-
-    function revoke(uint jId, uint id) public /** onlyOwner  把權限限制拿掉，變成一個在job(puzzle)審核期間要結束的那一刻執行的func，將出題者獎金沒收 */ {
-        require(jobListingExists[jId], "This job listing doesn't exist");
-        require(jobListings[jId].disputed > 0, "This job must be on dispute"); // 要被檢舉至少一次
-        require(!jobListings[jId].paidOut, "This job has been paid out"); // 必須在審核期間(若審核期間過了有超過檢舉次數門檻與不理會，因為理論上之前處理過)
-
-        // 處理錢錢(如果人數過門檻，dispute的人拿到錢錢；沒有過，錢錢給出題者)
-
-        // 不需要
-        // Use two separate indexes to access the FreelancerStruct
-        // FreelancerStruct storage freelancer = freelancers[jId][id];
-
-        // freelancer.isAssigned = false;
-        // jobListings[jId].freelancer = address(0);
-        // payTo(jobListings[jId].owner, jobListings[jId].prize);
-
-        // jobListings[jId].listed = true;
-    }
-
-    function resolved(uint id, uint jId  ) public   { //* 新增 jId*// //** onlyOwner 任何人 *//
-        require(jobListingExists[id], "This job listing doesn't exist");
-        require(jobListings[id].disputed > 0, "This job must be on dispute"); // 此人要dispute過這個job，還沒改好
-        require(!jobListings[id].paidOut, "This job has been paid out"); // job要在審查期間，還沒改好
-
-        jobListings[id].disputed = 0; //可能要改
-        // 退擔保金
-
-    }
-
-    function payout(uint id) public nonReentrant onlyJobOwner(id) {
-        require(jobListingExists[id], "This job listing doesn't exist");
-        require(!jobListings[id].listed, "This job has not been taken");
-        require(jobListings[id].disputed <= 0, "This job must not be on dispute");
-        require(!jobListings[id].paidOut, "This job has been paid out");
-
-        uint reward = jobListings[id].prize;
-        uint tax = (reward * platformCharge) / 100;
-
-        // 處理錢錢(答成功)
-        payTo(jobListings[id].freelancer, reward - tax);
-        payTo(owner(), tax);
-        jobListings[id].paidOut = true;
-        // timestamp_end 設為現在，timestamp_verified 隨之改變
-    }
-
-    // 取這個題目被答過的每一次紀錄
-    function getBidders(
-        uint id
-    ) public view returns (BidStruct[] memory Bidders) {
-        if (jobListings[id].listed && jobListingExists[id] ) {
-            Bidders = jobBidders[id];
-        } else {
-            Bidders = new BidStruct[](0);
+            puzzListings[pId].paidOut = true;
+            // puzzShowStatus[pId] = false;
         }
     }
 
-    // 取這個題目被誰答過(don't need ?)
-    function getFreelancers(
-        uint id
-    ) public view returns (FreelancerStruct[] memory) {
-        return freelancers[id];
-    }
+    //題目逾時無人解出，出題者可取回獎金中的90%
+    function claimExpiredReward(uint256 pId) external nonReentrant onlyPuzCreater(pId) {
+        PuzzStruct storage puzz = puzzListings[pId];
+        require(!puzz.paidOut, "Already paid out");
+        require(block.timestamp > puzz.timestamp_end, "Puzzle not expired yet");
+        require(puzz.prize > 0, "No prize to claim");
 
+        uint256 totalPool = puzz.prize;
+        uint256 reward = (totalPool * (100 - burnRate)) / 100;
+        uint256 burn = totalPool - reward;
+
+        tokenManager.rewardUser(puzz.owner, reward);
+        tokenManager.burnToken(burn);
+
+        puzz.paidOut = true;
+        puzzShowStatus[pId] = false;
+    }
     // 某個題目被多少人答過
-    function countTotalBids(uint jobId) public view returns (uint) {
-        return jobBidders[jobId].length;
-    }
-
-    // don't need
-    function getAcceptedFreelancer(
-        uint id
-    ) public view returns (FreelancerStruct memory) {
-        // require(jobListingExists[id], "This job listing doesn't exist");
-
-        // for (uint i = 0; i < freelancers[id].length; i++) {
-        //     if (freelancers[id][i].isAssigned) {
-        //         return freelancers[id][i];
-        //     }
-        // }
-
-        // // If no freelancer is assigned, return an empty struct or handle it as needed.
-        // FreelancerStruct memory emptyFreelancer;
-        // return emptyFreelancer;
+    function countTotalBids(uint256 puzId) public view returns (uint256) {
+        return puzzAttempts[puzId].length;
     }
 
     // 顯示所有目前開放中的任務
-    function getJobs() public view returns (JobStruct[] memory ActiveJobs) {
-        uint available;
-        uint currentIndex = 0;
-
-        for (uint256 i = 1; i <= _jobCounter.current(); i++) {
-            if (
-                jobListingExists[i] &&
-                jobListings[i].listed &&
-                !jobListings[i].paidOut
-            ) {
-                available++;
-            }
-        }
-
-        ActiveJobs = new JobStruct[](available);
-
-        for (uint256 i = 1; i <= _jobCounter.current(); i++) {
-            if (
-                jobListingExists[i] &&
-                jobListings[i].listed &&
-                !jobListings[i].paidOut
-            ) {
-                ActiveJobs[currentIndex++] = jobListings[i];
-            }
-        }
-    }
-
-    // 我出過那些題
-    function getMyJobs() public view returns (JobStruct[] memory MyJobs) {
-        uint available;
-        uint currentIndex = 0;
-
-        for (uint256 i = 1; i <= _jobCounter.current(); i++) {
-            if (jobListingExists[i] && jobListings[i].owner == msg.sender) {
-                available++;
-            }
-        }
-
-        MyJobs = new JobStruct[](available);
-
-        for (uint256 i = 1; i <= _jobCounter.current(); i++) {
-            if (jobListingExists[i] && jobListings[i].owner == msg.sender) {
-                MyJobs[currentIndex++] = jobListings[i];
-            }
-        }
-    }
-
-    // 查詢某個特定 Job（題目）的完整資訊
-    function getJob(uint id) public view returns (JobStruct memory) {
-        return jobListings[id];
-    }
-
-    // 獲取自己所有「進行中」的任務(don't need)
-    function getAssignedJobs()
-        public
-        view
-        returns (JobStruct[] memory AssignedJobs)
+    function getAllPuzzle() public view
+        returns (PuzzStruct[] memory activePuzz, uint256[] memory relation)
     {
-        uint available;
-
-        for (uint256 i = 1; i <= _jobCounter.current(); i++) {
-            if (
-                jobListingExists[i] &&
-                !jobListings[i].paidOut &&
-                jobListings[i].freelancer == msg.sender
-            ) {
-                available++;
+        uint256 total = _puzzCounter.current();
+        uint256 count = 0;
+        // 先算出有幾個符合條件的 puzzle
+        for (uint256 i = 1; i <= total; i++) {
+            if (puzzShowStatus[i] && puzzListings[i].listed) {
+                count++;
             }
         }
 
-        AssignedJobs = new JobStruct[](available);
+        // 初始化回傳用的記憶體陣列
+        activePuzz = new PuzzStruct[](count);
+        relation  = new uint256[](count);
 
-        uint currentIndex = 0;
-        for (uint256 i = 1; i <= _jobCounter.current(); i++) {
-            if (
-                jobListingExists[i] &&
-                !jobListings[i].paidOut &&
-                jobListings[i].freelancer == msg.sender
-            ) {
-                AssignedJobs[currentIndex++] = jobListings[i];
+        uint256 idx = 0;
+        // 填入符合條件的 puzzle 以及對應的關係
+        for (uint256 i = 1; i <= total; i++) {
+            if (puzzShowStatus[i] && puzzListings[i].listed) {
+                activePuzz[idx]    = puzzListings[i];
+                relation[idx]      = getMyRelationshipWithPuzzle(i);
+                idx++;
             }
         }
-
-        return AssignedJobs;
+        // 函式末尾會自動 return (activePuzz, relation)
     }
 
-    // 我嘗試解過哪些 puzzle，回傳bid
-    function getBidsForBidder() public view returns (BidStruct[] memory Bids) {
-        // Create a dynamic array to store the bids
-        BidStruct[] memory allBids = new BidStruct[](_jobCounter.current());
-        uint currentIndex = 0;
 
-        for (uint i = 1; i <= _jobCounter.current(); i++) {
-            if (
-                jobListingExists[i]
-                // jobListings[i].listed &&
-                // !jobListings[i].paidOut
-            ) {
-                if (hasPlacedBid[i][msg.sender]) {
-                    // Iterate over the bids for the current job and add matching bids to the array
-                    for (uint j = 0; j < jobBidders[i].length; j++) {
-                        if (jobBidders[i][j].account == msg.sender) {
-                            allBids[currentIndex] = jobBidders[i][j];
-                            currentIndex++;
-                        }
-                    }
+    function getMyRelationshipWithPuzzle(uint256 puzzId) public view returns (uint8) {
+        PuzzStruct storage p = puzzListings[puzzId];
+
+        // 0：自己是擁有者
+        if (p.owner == msg.sender) {
+            return 0;
+        }
+
+        bool userTried = false;
+        bool userSolved = false;
+        bool anySolved = false;
+
+        // 掃描所有嘗試記錄
+        Attempt[] storage attempts = puzzAttempts[puzzId];
+        for (uint256 i = 0; i < attempts.length; i++) {
+            Attempt storage a = attempts[i];
+            if (a.pass) {
+                anySolved = true;
+            }
+            if (a.account == msg.sender) {
+                userTried = true;
+                if (a.pass) {
+                    userSolved = true;
                 }
             }
         }
 
-        // Create a new array with only the relevant bids
-        Bids = new BidStruct[](currentIndex);
-        for (uint k = 0; k < currentIndex; k++) {
-            Bids[k] = allBids[k];
+        if (userSolved) {
+            // 1：使用者已經解開
+            return 1;
+        } else if (userTried) {
+            if (anySolved) {
+                // 3：使用者嘗試過但沒解開，有其他人解開
+                return 3;
+            } else {
+                // 2：使用者嘗試過但沒解開，也沒人解開
+                return 2;
+            }
+        } else {
+            if (anySolved) {
+                // 5：使用者沒嘗試過，但有人解開
+                return 5;
+            } else {
+                // 4：使用者沒嘗試過，也沒人解開
+                return 4;
+            }
         }
-
-        return Bids;
     }
 
-    // // 我嘗試解過哪些 puzzle，回傳job
-    function getJobsForBidder()
-        public
-        view
-        returns (JobStruct[] memory bidderJobs)
-    {
-        // Create a dynamic array to store the jobs
-        JobStruct[] memory matchingJobs = new JobStruct[](
-            _jobCounter.current()
-        );
-        uint currentIndex = 0;
+    // 回傳呼叫者（msg.sender）所有的 Attempt
+    function getMyAttempted() public view returns (Attempt[] memory attempts) {
+        uint256[] storage attemptedPuzzIds = puzzAtmptIdByUser[msg.sender];
+        uint256 totalCount = 0;
 
-        for (uint i = 1; i <= _jobCounter.current(); i++) {
-            if (
-                jobListingExists[i]
-                // jobListings[i].listed &&
-                // !jobListings[i].paidOut
-            ) {
-                if (hasPlacedBid[i][msg.sender]) {
-                    matchingJobs[currentIndex] = jobListings[i];
-                    currentIndex++;
+        // 先統計使用者總共做過幾次嘗試（可能對同一個 puzzle 嘗試多次）
+        for (uint256 i = 0; i < attemptedPuzzIds.length; i++) {
+            uint256 pId = attemptedPuzzIds[i];
+            Attempt[] storage atts = puzzAttempts[pId];
+            for (uint256 j = 0; j < atts.length; j++) {
+                if (atts[j].account == msg.sender) {
+                    totalCount++;
                 }
             }
         }
 
-        // Create a new array with only the relevant jobs
-        bidderJobs = new JobStruct[](currentIndex);
-        for (uint k = 0; k < currentIndex; k++) {
-            bidderJobs[k] = matchingJobs[k];
+        // 建立回傳陣列
+        attempts = new Attempt[](totalCount);
+        uint256 index = 0;
+
+        for (uint256 i = 0; i < attemptedPuzzIds.length; i++) {
+            uint256 pId = attemptedPuzzIds[i];
+            Attempt[] storage atts = puzzAttempts[pId];
+            for (uint256 j = 0; j < atts.length; j++) {
+                if (atts[j].account == msg.sender) {
+                    attempts[index++] = atts[j];
+                }
+            }
         }
-
-        return bidderJobs;
     }
 
-    // private function
 
-    function currentTime() internal view returns (uint256) {
-        return (block.timestamp * 1000) + 1000;
+
+
+    // 回傳呼叫者嘗試過的所有 Puzzle 資訊
+    function getMyAttemptedPuzzle() public view returns (PuzzStruct[] memory puzzs) {
+        uint256[] storage ids = puzzAtmptIdByUser[msg.sender];
+        uint256 len = ids.length;
+        puzzs = new PuzzStruct[](len);
+        for (uint256 i = 0; i < len; i++) {
+            puzzs[i] = puzzListings[ids[i]];
+        }
     }
 
-    function payTo(address to, uint256 amount) internal {
-        // 處理付錢邏輯，有需要請改
-        (bool success, ) = payable(to).call{value: amount}("");
-        require(success);
+    // 回傳呼叫者所擁有的所有 Puzzle
+    function getMyPuzzle() public view returns (PuzzStruct[] memory puzzs) {
+        uint256 total = _puzzCounter.current();
+        uint256 count = 0;
+        for (uint256 i = 1; i <= total; i++) {
+            if (puzzListings[i].owner == msg.sender) {
+                count++;
+            }
+        }
+        puzzs = new PuzzStruct[](count);
+        uint256 idx = 0;
+        for (uint256 i = 1; i <= total; i++) {
+            if (puzzListings[i].owner == msg.sender) {
+                puzzs[idx++] = puzzListings[i];
+            }
+        }
     }
+
+    // 回傳指定 ID 的 Puzzle
+    function getPuzzle(uint256 puzzId) public view returns (PuzzStruct memory puzz) {
+        puzz = puzzListings[puzzId];
+    }
+
 }

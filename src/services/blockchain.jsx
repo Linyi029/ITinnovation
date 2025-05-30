@@ -102,12 +102,12 @@ const addJobListing = async ({ jobTitle, description, tags, prize, answer }) => 
   })
 }
 
-const updateJob = async ({ id, jobTitle, description, tags }) => {
+const updateJob = async ({ id, jobTitle, description, tags, answer }) => {
   if (!ethereum) return alert('Please install Metamask')
   return new Promise(async (resolve, reject) => {
     try {
       const contract = await getEthereumContract()
-      tx = await contract.updateJob(id, jobTitle, description, tags)
+      tx = await contract.updateJob(id, jobTitle, description, tags, answer)
       await tx.wait()
 
       await loadData()
@@ -252,7 +252,7 @@ const bidPassStatus = async (jobId) => {
   }
   try {
     const contract = await getEthereumContract()
-    const [hasUserPassed, hasAnyonePassed] = await contract.bidStatus(
+    const [hasUserPassed, hasAnyonePassed] = await contract.bidPassStatus(
       jobId,
       // assume you already have connectedAccount in your store
       getGlobalState('connectedAccount')

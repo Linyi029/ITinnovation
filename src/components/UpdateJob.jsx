@@ -54,7 +54,6 @@ const UpdateJob = () => {
       jobTitle,
       description,
       tags: skills.slice(0, 5).join(','),
-      description,
       answer,
       prize,
     }
