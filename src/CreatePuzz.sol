@@ -66,10 +66,11 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
         _;
     }
 
-    constructor(address _token, address _factory) {
+    constructor(address _token, address _factory, address initialOwner) Ownable(initialOwner) {
         token = PUZToken(_token);
         factory = TokenManagerFactory(_factory);
     }
+
 
     function registerOrLogin() public {
         if (!isRegistered[msg.sender]) {

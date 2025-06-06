@@ -9,6 +9,7 @@ import "./TokenManager.sol";
 contract TokenManagerFactory {
     address public immutable token;
     address public immutable createPuzz;
+    address public immutable iniOwner;
 
     mapping(uint256 => address) public puzzleToManager;
 
@@ -22,7 +23,7 @@ contract TokenManagerFactory {
     function createTokenManager(uint256 puzId) external returns (address) {
         require(puzzleToManager[puzId] == address(0), "Already created");
 
-        TokenManager tm = new TokenManager(token, createPuzz);
+        TokenManager tm = new TokenManager(token, createPuzz, iniOwner);
         puzzleToManager[puzId] = address(tm);
 
         emit TokenManagerCreated(puzId, address(tm));

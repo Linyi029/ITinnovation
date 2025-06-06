@@ -17,7 +17,7 @@ contract TokenManager is Ownable {
         _;
     }
 
-    constructor(address _token, address _createPuzz) {
+    constructor(address _token, address _createPuzz, address initialOwner) Ownable(initialOwner) {
         token = IERC20(_token);
         createPuzz = _createPuzz;
     } //用什麼錢，這個獎金池對應的puzzle地址

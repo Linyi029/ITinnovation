@@ -73,10 +73,6 @@ const CreatePuzzleSubmit = () => {
           <div className="w-10 h-10 bg-stone-500 rounded-full"></div>
           <a href='/User' className="text-stone-600 text-2xl font-semibold ml-2">username</a>
         </div>
-        <div className="flex items-center mt-2">
-          <img src="/images/coin.png" alt="Coin icon" className="w-[57px] h-[61px]" />
-          <span className="text-2xl font-semibold text-[#181717] ml-2">455 PUZ</span>
-        </div>
       </div>
       <div className="flex flex-end flex-col items-center p-8 pb-3"> <h1 className="text-5xl font-bold text-lime-800 mt-8 mb-12 items-center">Create Puzzle</h1></div>
       <div className="items-center justify-center w-full flex">

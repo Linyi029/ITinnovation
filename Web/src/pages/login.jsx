@@ -1,8 +1,47 @@
 import React, { useEffect,useState } from "react";
 import {useNavigate } from 'react-router-dom';
+import Button from "../components/ui/Button-submit";
+import { ethers } from 'ethers';
+import Web3 from 'web3';
+import CreatePuzzABI from '../abi/CreatePuzz.json';
 
 const Login = () => {
   const navigate = useNavigate();
+  const [account, setAccount] = useState(null);
+  const [web3, setWeb3] = useState(null);
+  const [contract, setContract] = useState(null);
+  const connectWallet = async () => {
+    if (!window.ethereum) {
+        alert('請先安裝 MetaMask');
+        return;
+    }
+// 打開跳出的是metamask的連結，但因為還沒有contractAddress的實例，所以沒辦法確認是否可以登入成功
+    try {
+        const accounts = await window.ethereum.request({
+            method: 'eth_requestAccounts',
+        });
+
+        const web3Instance = new Web3(window.ethereum);
+        setWeb3(web3Instance);
+
+        const connectedAccount = accounts[0];
+        setAccount(connectedAccount);
+
+        const contractInstance = new web3Instance.eth.Contract(CreatePuzzABI, contractAddress);
+        setContract(contractInstance);
+
+        console.log('Web3:',web3Instance)
+        console.log('account:',connectedAccount)
+        console.log('contract:',contractInstance)
+        // ✅ 自動註冊/登入
+        await contractInstance.methods.registerOrLogin().send({ from: connectedAccount });
+
+        navigate('/Main')
+    } catch (error) {
+        console.error('連線或註冊失敗:', error);
+    }
+};
+
   useEffect(() => {
     document.title = "LOGIN | PUZZLE";
   }, []);
@@ -41,8 +80,16 @@ const Login = () => {
         </div>
 
         {/* 分隔線 */}
-        <div className="text-center text-slate-800 text-sm">請輸入帳號密碼</div>
-
+        <div className="items-center justify-center flex space-x-4 mb-4">       
+        <Button
+            type="button"
+            onClick={connectWallet}
+            // className="items-center justify-center"
+        >
+            <img src="/images/metamask.png" alt="Search" className="w-10 h-10" />
+        </Button>
+        </div>
+         <div className="text-center text-slate-800 text-sm">用Metamask登入或輸入帳號密碼</div>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* 輸入email的input */}
           <input
