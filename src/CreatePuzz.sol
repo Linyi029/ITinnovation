@@ -176,4 +176,97 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
     function setFactory(address _factory) external onlyOwner {
         factory = TokenManagerFactory(_factory);
     }
+
+    function getActivePuzzles() public view returns (PuzzStruct[] memory) {
+        uint256 count;
+        for (uint256 i = 1; i <= _puzzCounter.current(); i++) {
+            if (puzzShowStatus[i] && !puzzListings[i].paidOut && block.timestamp <= puzzListings[i].timestamp_end) {
+                count++;
+            }
+        }
+
+        PuzzStruct[] memory active = new PuzzStruct[](count);
+        uint256 idx;
+        for (uint256 i = 1; i <= _puzzCounter.current(); i++) {
+            if (puzzShowStatus[i] && !puzzListings[i].paidOut && block.timestamp <= puzzListings[i].timestamp_end) {
+                active[idx++] = puzzListings[i];
+            }
+        }
+
+        return active;
+    }
+
+    function getMyPuzzles() public view returns (PuzzStruct[] memory) {
+        uint256 count;
+        for (uint256 i = 1; i <= _puzzCounter.current(); i++) {
+            if (puzzListings[i].owner == msg.sender) {
+                count++;
+            }
+        }
+
+        PuzzStruct[] memory myPuzz = new PuzzStruct[](count);
+        uint256 idx;
+        for (uint256 i = 1; i <= _puzzCounter.current(); i++) {
+            if (puzzListings[i].owner == msg.sender) {
+                myPuzz[idx++] = puzzListings[i];
+            }
+        }
+
+        return myPuzz;
+    }
+
+    function getAttemptedPuzzles() public view returns (PuzzStruct[] memory) {
+        uint256[] memory ids = puzzAtmptIdByUser[msg.sender];
+        PuzzStruct[] memory results = new PuzzStruct[](ids.length);
+
+        for (uint256 i = 0; i < ids.length; i++) {
+            results[i] = puzzListings[ids[i]];
+        }
+
+        return results;
+    }
+
+    function getMyAttempts() public view returns (Attempt[] memory) {
+        uint256 count;
+        for (uint256 i = 1; i <= _puzzCounter.current(); i++) {
+            for (uint256 j = 0; j < puzzAttempts[i].length; j++) {
+                if (puzzAttempts[i][j].account == msg.sender) {
+                    count++;
+                }
+            }
+        }
+
+        Attempt[] memory myAttempts = new Attempt[](count);
+        uint256 idx;
+        for (uint256 i = 1; i <= _puzzCounter.current(); i++) {
+            for (uint256 j = 0; j < puzzAttempts[i].length; j++) {
+                if (puzzAttempts[i][j].account == msg.sender) {
+                    myAttempts[idx++] = puzzAttempts[i][j];
+                }
+            }
+        }
+
+        return myAttempts;
+    }
+
+    function getPassStatus(uint256 pId) public view returns (bool iPassed, bool anyonePassed) {
+        Attempt[] memory attempts = puzzAttempts[pId];
+        bool mine = false;
+        bool any = false;
+
+        for (uint256 i = 0; i < attempts.length; i++) {
+            if (attempts[i].pass) {
+                any = true;
+            }
+            if (attempts[i].account == msg.sender && attempts[i].pass) {
+                mine = true;
+            }
+        }
+
+        return (mine, any);
+    }
+
+    function getPuzPrizeManager(uint256 pId) public view returns (address) {
+        return puzzListings[pId].puzPrizeManager;
+    }
 }

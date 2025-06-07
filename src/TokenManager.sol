@@ -20,7 +20,7 @@ contract TokenManager is Ownable {
     constructor(address _token, address _createPuzz) {
         token = IERC20(_token);
         createPuzz = _createPuzz;
-    } //用什麼錢，這個獎金池對應的puzzle地址
+    }
 
     function takeDeposit(address from, uint256 amount) external onlyCreatePuzz {
         require(token.transferFrom(from, address(this), amount), "Transfer failed");
