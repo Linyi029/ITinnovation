@@ -74,9 +74,17 @@ const CreatePuzzleSubmit = () => {
           <a href='/User' className="text-stone-600 text-2xl font-semibold ml-2">username</a>
         </div>
       </div>
-      <div className="flex flex-end flex-col items-center p-8 pb-3"> <h1 className="text-5xl font-bold text-lime-800 mt-8 mb-12 items-center">Create Puzzle</h1></div>
+      <div className="flex flex-end flex-col items-center p-8 pb-3"> <h1 className="text-5xl font-bold text-stone-600 mt-8 mb-12 items-center">Create Puzzle</h1></div>
       <div className="items-center justify-center w-full flex">
         {/* 這是綠色框框的部分 詳細component在createPZ.jsx*/}
+        {/* getters to CreatePuzz.sol的PuzzStruct :
+        title : formData.title,
+        question : formData.puzzle,
+        tags : formData.label.join(', '),
+        answer : formData.answer, 
+        hint : formData.hint
+        formData.availableDays是puzzle有幾天可以解(不確定三個timestamp的變數代表什麼)
+        */}
         <PuzzleForm
           formData={formData}
           onChange={handleChange}

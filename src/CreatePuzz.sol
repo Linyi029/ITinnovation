@@ -97,6 +97,7 @@ contract CreatePuzz is Ownable, ReentrancyGuard {
 
         IERC20(token).transferFrom(msg.sender, manager, fixedFee);
 
+        // 從idx-createPZ.jsx取出create puzzle的資料
         puzzListings[puzId] = PuzzStruct({
             id: puzId,
             owner: msg.sender,

@@ -7,7 +7,7 @@ import Checkboxes from '../components/ui/Checkboxes';
 
 const PuzzleForm = ({ formData, onChange, onSubmit, onDiscard }) => {
   return (
-    <div className="w-[946px] h-[600px] bg-lime-800 bg-opacity-30 rounded-[50px] p-8 mb-12">
+    <div className="w-[946px] h-[600px] bg-white shadow-lg p-8 mb-12">
       <form onSubmit={onSubmit} className="flex flex-col h-full">
         <div className="grid grid-cols-2 gap-8 mb-4">
           <div>

@@ -4,12 +4,35 @@ import Button from "../components/ui/Button-submit";
 import { ethers } from 'ethers';
 import Web3 from 'web3';
 import CreatePuzzABI from '../abi/CreatePuzz.json';
+import provider from '../lib/provider';
 
 const Login = () => {
   const navigate = useNavigate();
   const [account, setAccount] = useState(null);
   const [web3, setWeb3] = useState(null);
   const [contract, setContract] = useState(null);
+
+  async function loginUser({ username, password, privateKey }) {
+  try {
+    // 根據 privateKey 建立 signer
+    const wallet = new ethers.Wallet(privateKey, provider);
+
+    // 顯示地址（可存在 localStorage 來作為登入識別）
+    console.log("Logged in as address:", wallet.address);
+
+    // 建議用 localStorage 儲存登入資訊
+    localStorage.setItem("user", JSON.stringify({
+      username,
+      address: wallet.address,
+      privateKey, // 建議加密存或只存在記憶體
+    }));
+
+    return { success: true, wallet };
+  } catch (err) {
+    console.error("Login failed:", err);
+    return { success: false, error: err };
+  }
+
   const connectWallet = async () => {
     if (!window.ethereum) {
         alert('請先安裝 MetaMask');
@@ -148,5 +171,5 @@ const Login = () => {
     </div>
   );
 };
-
+};
 export default Login;

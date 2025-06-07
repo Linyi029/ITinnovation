@@ -10,7 +10,7 @@ const PuzzleOptions = () => {
   const handleCreatePuzzleClick = () => {
     console.log('Navigate to create puzzle page');
     // In a real application, you would use navigation here
-    // navigate('/create-puzzle');
+    navigate('/CreatePuzzle/Submit');
   };
 
   const handleSolvePuzzleClick = () => {
@@ -36,8 +36,7 @@ const PuzzleOptions = () => {
         <div className="w-full max-w-[532px]">
           <Card
             title="Create a puzzle!"
-            price="$0"
-            description="Body text."
+            // description="Body text."
             imageSrc="/images/create.webp"
             onClick={handleCreatePuzzleClick}
           />
@@ -45,8 +44,7 @@ const PuzzleOptions = () => {
         <div className="w-full max-w-[532px]">
           <Card
             title="Solving puzzles!"
-            price="$0"
-            description="Body text."
+            // description="Body text."
             imageSrc="/images/solver.jpeg"
             onClick={handleSolvePuzzleClick}
           />
