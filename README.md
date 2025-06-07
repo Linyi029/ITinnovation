@@ -1,66 +1,22 @@
-## Foundry
+deploy.js : 部署合約的檔案 (開啟Anvil後用另一個terminal輸入 node src/contract/deploy.js)
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+routes.jsx : 每個jsx檔的網址
 
-Foundry consists of:
+## Web/src/pages
+login, register : 我本來是用metamask 但你們說要用anvil 所以我就沒動它了
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+PuzzleOptions : 登入後的主頁
 
-## Documentation
+User : 點username出現的個人資料頁面(getAttemptedPuzzles, getMyPuzzles)
 
-https://book.getfoundry.sh/
+SolvePuzzleMain : 瀏覽所有的題目(含可以解or已被解決/時效已到的)
 
-## Usage
+UnverifiedPuzzle : 還沒被解出的題目(解題跟看提示皆須花錢)
 
-### Build
+VerifiedPuzzle : 已被解出的題目(可以免費看提示跟解答)
 
-```shell
-$ forge build
-```
+** 有dynamic是邱寫的 比較適合你們串前後端(?)(沒有寫死)
 
-### Test
+idx-create : 出題目的頁面
 
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+createPZ : idx-create的一部份(用form將題目的各種資訊包起來)
