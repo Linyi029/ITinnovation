@@ -1,0 +1,150 @@
+diff --git a/Web/go.cjs b/Web/go.cjs
+new file mode 100644
+index 0000000..8ac544c
+--- /dev/null
++++ b/Web/go.cjs
+@@ -0,0 +1,64 @@
++#!/usr/bin/env node
++
++const fs = require("fs");
++const path = require("path");
++
++// 🔧 專案根目錄（視情況調整）
++const BASE_PATH = "/Users/csh5138/ercFinal";
++
++// 📄 Broadcast 檔案
++const broadcastPath = path.join(BASE_PATH, "broadcast/Deploy.s.sol/31337/run-latest.json");
++const broadcastData = JSON.parse(fs.readFileSync(broadcastPath, "utf8"));
++
++// 🧩 通常合約（合約名 = 檔名 = contract class name）
++const CONTRACTS = ["PUZToken", "CreatePuzz"];
++const output = {};
++
++for (const contractName of CONTRACTS) {
++  const artifactPath = path.join(BASE_PATH, `out/${contractName}.sol/${contractName}.json`);
++  if (!fs.existsSync(artifactPath)) {
++    console.warn(`⚠️ 無 ${contractName}.json，略過`);
++    continue;
++  }
++
++  const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
++  const tx = broadcastData.transactions.find(tx => tx.contractName === contractName);
++
++  if (!tx) {
++    console.warn(`⚠️ 找不到 ${contractName} 的部署紀錄，略過`);
++    continue;
++  }
++
++  output[contractName] = {
++    abi: artifact.abi,
++    address: tx.contractAddress
++  };
++  console.log(`✅ ${contractName} 已加入`);
++}
++
++// 🔧 特例處理：TokenManagerFac.sol → TokenManagerFactory
++const tokenManagerFacPath = path.join(BASE_PATH, "out/TokenManagerFac.sol/TokenManagerFactory.json");
++if (fs.existsSync(tokenManagerFacPath)) {
++  const tokenManagerFacJson = JSON.parse(fs.readFileSync(tokenManagerFacPath, "utf8"));
++
++  const txTokenManagerFac = broadcastData.transactions.find(
++    tx => tx.contractName === "TokenManagerFactory"
++  );
++
++  if (txTokenManagerFac) {
++    output["TokenManagerFactory"] = {
++      abi: tokenManagerFacJson.abi,
++      address: txTokenManagerFac.contractAddress
++    };
++    console.log("✅ TokenManagerFactory 資訊已加入");
++  } else {
++    console.warn("⚠️ 找不到 TokenManagerFactory 的交易紀錄");
++  }
++} else {
++  console.warn("⚠️ 找不到 TokenManagerFactory.json");
++}
++
++// ✅ 輸出結果
++const outputPath = path.join(__dirname, "contracts.json");
++fs.writeFileSync(outputPath, JSON.stringify(output, null, 2));
++console.log(`📦 ABI 與地址已輸出至 ${outputPath}`);
+diff --git a/Web/package.json b/Web/package.json
+index e2303a9..0492f49 100644
+--- a/Web/package.json
++++ b/Web/package.json
+@@ -16,18 +16,20 @@
+     "@tailwindcss/typography": "^0.5.16",
+     "class-variance-authority": "^0.7.1",
+     "clsx": "^2.1.1",
++    "ethers": "^6.14.3",
+     "lucide-react": "^0.511.0",
+     "mdb-react-ui-kit": "^9.0.0",
+     "prop-types": "^15.8.1",
+-    "react": "^19.0.0",
+-    "react-dom": "^19.0.0",
++    "react": "^18.0.0",
++    "react-dom": "^18.0.0",
+     "react-router-dom": "^7.4.1",
+     "tailwind-merge": "^3.3.0",
+-    "tailwindcss-animate": "^1.0.7"
++    "tailwindcss-animate": "^1.0.7",
++    "web3": "^4.16.0"
+   },
+   "devDependencies": {
+-    "@types/react": "^19.0.10",
+-    "@types/react-dom": "^19.0.4",
++    "@types/react": "^18.0.28",
++    "@types/react-dom": "^18.0.11",
+     "@vitejs/plugin-react": "4.3.4",
+     "autoprefixer": "^10.4.21",
+     "globals": "^15.15.0",
+diff --git a/Web/src/Routes.jsx b/Web/src/Routes.jsx
+index 7d072f1..19a24d5 100644
+--- a/Web/src/Routes.jsx
++++ b/Web/src/Routes.jsx
+@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+ 
+ // Import page components
+ import PuzzleCreationPlatform from './pages';
++import Login from './pages';
+ import PuzzleOptions from './pages/PuzzleOptions';
+ import SolvePuzzleMain from './pages/SolvePuzzleMain';
+ import CreatePuzzleSubmit from './pages/idx-createPZ';
+@@ -15,8 +16,10 @@ const AppRoutes = () => {
+   return (
+     <Router>
+       <Routes>
+-        <Route path="/" element={<PuzzleCreationPlatform />} />
+-        <Route path="/Main" element={<PuzzleOptions />} />
++        {/* <Route path="/" element={<PuzzleCreationPlatform />} /> */}
++        {/* <Route path="/" element={<Login />} /> */}
++        <Route path="/" element={<PuzzleOptions />} />
++        {/* <Route path="/Main" element={<PuzzleOptions />} /> */}
+         <Route path="/SolvePuzzle" element={<SolvePuzzleMain />} />
+         <Route path="/CreatePuzzle/Submit" element={<CreatePuzzleSubmit />} />
+         <Route path="/Register" element={<Register />} />
+diff --git a/Web/src/pages/User.jsx b/Web/src/pages/User.jsx
+index 47f3e54..885dee2 100644
+--- a/Web/src/pages/User.jsx
++++ b/Web/src/pages/User.jsx
+@@ -77,7 +77,7 @@ export default function Home() {
+       <div className="flex justify-between items-center mb-8">
+         <div className="flex justify-end space-x-4">
+           <Link
+-            to="/Main"
++            to="/"
+             className="bg-slate-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-slate-600 active:scale-95 transition duration-150"
+           >
+             Homepage
+diff --git a/Web/src/pages/index.jsx b/Web/src/pages/index.jsx
+index 1ba4491..346a6e6 100644
+--- a/Web/src/pages/index.jsx
++++ b/Web/src/pages/index.jsx
+@@ -1,6 +1,6 @@
+ import React from 'react';
+ import PuzzleOptions from './PuzzleOptions.jsx';
+-import SolvePuzzleMain from './login.jsx';
++import SolvePuzzleMain from './Login.jsx';
+ 
+ const PuzzleCreationPlatform = () => {
+   return (
