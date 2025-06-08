@@ -1,6 +1,6 @@
 import React from 'react';
 import PuzzleOptions from './PuzzleOptions.jsx';
-import SolvePuzzleMain from './login.jsx';
+import SolvePuzzleMain from './Login.jsx';
 
 const PuzzleCreationPlatform = () => {
   return (

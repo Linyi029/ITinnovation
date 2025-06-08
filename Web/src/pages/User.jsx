@@ -77,7 +77,7 @@ export default function Home() {
       <div className="flex justify-between items-center mb-8">
         <div className="flex justify-end space-x-4">
           <Link
-            to="/Main"
+            to="/"
             className="bg-slate-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-slate-600 active:scale-95 transition duration-150"
           >
             Homepage

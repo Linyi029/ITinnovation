@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 // Import page components
 import PuzzleCreationPlatform from './pages';
+import Login from './pages';
 import PuzzleOptions from './pages/PuzzleOptions';
 import SolvePuzzleMain from './pages/SolvePuzzleMain';
 import CreatePuzzleSubmit from './pages/idx-createPZ';
@@ -15,8 +16,10 @@ const AppRoutes = () => {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<PuzzleCreationPlatform />} />
-        <Route path="/Main" element={<PuzzleOptions />} />
+        {/* <Route path="/" element={<PuzzleCreationPlatform />} /> */}
+        {/* <Route path="/" element={<Login />} /> */}
+        <Route path="/" element={<PuzzleOptions />} />
+        {/* <Route path="/Main" element={<PuzzleOptions />} /> */}
         <Route path="/SolvePuzzle" element={<SolvePuzzleMain />} />
         <Route path="/CreatePuzzle/Submit" element={<CreatePuzzleSubmit />} />
         <Route path="/Register" element={<Register />} />
