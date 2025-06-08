@@ -1,9 +1,9 @@
 // src/provider.js
 import { ethers } from "ethers";
 import deployedAddresses from "../contract/contract.json"; // 儲存部署後的合約地址
-import CreatePuzzABI from "../abi/CreatePuzz.json";
-import PUZTokenABI from "../abi/PUZToken.json";
-import TokenManagerFactoryABI from "../abi/TokenManagerFac.json";
+import CreatePuzzABI from "../contract.json";
+import PUZTokenABI from "../contract.json";
+import TokenManagerFactoryABI from "../contract.json";
 
 // RPC Provider 連線到本地 Anvil
 const ANVIL_RPC_URL = "http://127.0.0.1:8545";
