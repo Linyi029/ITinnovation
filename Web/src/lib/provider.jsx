@@ -44,8 +44,8 @@
 // export default getContracts;
 
 import { ethers } from 'ethers';
-import contracts from './contracts.json'
-import { setGlobalState } from './store'//還沒寫
+import contracts from '../../../contracts.json';
+import { setGlobalState } from './store.jsx';//還沒寫
 
 const createPuzzAddress = contracts.CreatePuzz.address
 
