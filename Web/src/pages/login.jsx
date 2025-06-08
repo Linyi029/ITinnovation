@@ -1,10 +1,10 @@
 import React, { useEffect,useState } from "react";
 import {useNavigate } from 'react-router-dom';
 import Button from "../components/ui/Button-submit";
-import { ethers } from 'ethers';
-import Web3 from 'web3';
-import CreatePuzzABI from '../abi/CreatePuzz.json';
-import provider from '../lib/provider';
+//import { ethers } from 'ethers';
+//import Web3 from 'web3';
+//import CreatePuzzABI from '../abi/CreatePuzz.json';
+//import provider from '../lib/provider';
 
 const Login = () => {
   const navigate = useNavigate();

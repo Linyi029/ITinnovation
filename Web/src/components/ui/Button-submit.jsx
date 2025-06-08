@@ -1,9 +1,9 @@
 import React from 'react';
 
-const Button = ({ 
-  children, 
-  type = 'button', 
-  onClick, 
+const Button = ({
+  children,
+  type = 'button',
+  onClick,
   className = '',
   disabled = false
 }) => {
@@ -20,3 +20,5 @@ const Button = ({
 };
 
 export default Button;
+
+
