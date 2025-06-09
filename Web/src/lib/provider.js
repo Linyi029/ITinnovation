@@ -157,5 +157,28 @@ export const getPuzzleById = async (id) => {
     author: data.owner,
     question: data.description,
     labels: data.tags.split(',').map((tag) => tag.trim()), // tag 是 "AI,Math,Beginner" 這樣的字串
+    
   };
+};
+
+
+export const attemptPuzzle = async (puzzleId, guess) => {
+  try {
+    const { createPuzz } = await getContracts();
+    const tx = await createPuzz.attemptPuzzle(puzzleId, guess);
+    const receipt = await tx.wait();
+
+    console.log("Transaction confirmed:", receipt.transactionHash);
+
+    return {
+      success: true,
+      txHash: receipt.transactionHash,
+    };
+  } catch (err) {
+    console.error("attemptPuzzle error:", err);
+    return {
+      success: false,
+      error: err.message,
+    };
+  }
 };
