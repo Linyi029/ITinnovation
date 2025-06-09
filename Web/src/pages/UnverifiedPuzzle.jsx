@@ -219,9 +219,7 @@ export default function UnsolvedPuzzle() {
                 <label
                   key={index}
                   className={`${
-                    index === 0
-                      ? 'bg-slate-500 text-white'
-                      : 'bg-slate-50 text-black'
+                    index === 0 ? 'bg-slate-500 text-white' : 'bg-slate-50 text-black'
                   } px-4 py-2 rounded`}
                 >
                   {label}

@@ -652,6 +652,96 @@
       },
       {
         "type": "function",
+        "name": "getAllPuzzles",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "type": "tuple[]",
+            "internalType": "struct CreatePuzz.PuzzStruct[]",
+            "components": [
+              {
+                "name": "id",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "owner",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "title",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "description",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "tags",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "prize",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "paidOut",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "timestamp",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "listed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "disputed",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "disputers",
+                "type": "address[]",
+                "internalType": "address[]"
+              },
+              {
+                "name": "answer",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "timestamp_end",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "timestamp_verified",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "puzPrizeManager",
+                "type": "address",
+                "internalType": "address"
+              }
+            ]
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "type": "function",
         "name": "getAttemptedPuzzles",
         "inputs": [],
         "outputs": [
@@ -923,6 +1013,282 @@
             "name": "",
             "type": "address",
             "internalType": "address"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "getPuzzleById",
+        "inputs": [
+          {
+            "name": "id",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "type": "tuple",
+            "internalType": "struct CreatePuzz.PuzzStruct",
+            "components": [
+              {
+                "name": "id",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "owner",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "title",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "description",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "tags",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "prize",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "paidOut",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "timestamp",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "listed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "disputed",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "disputers",
+                "type": "address[]",
+                "internalType": "address[]"
+              },
+              {
+                "name": "answer",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "timestamp_end",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "timestamp_verified",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "puzPrizeManager",
+                "type": "address",
+                "internalType": "address"
+              }
+            ]
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "getUnverifiedPuzzles",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "type": "tuple[]",
+            "internalType": "struct CreatePuzz.PuzzStruct[]",
+            "components": [
+              {
+                "name": "id",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "owner",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "title",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "description",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "tags",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "prize",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "paidOut",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "timestamp",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "listed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "disputed",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "disputers",
+                "type": "address[]",
+                "internalType": "address[]"
+              },
+              {
+                "name": "answer",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "timestamp_end",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "timestamp_verified",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "puzPrizeManager",
+                "type": "address",
+                "internalType": "address"
+              }
+            ]
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "getVerifiedPuzzles",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "type": "tuple[]",
+            "internalType": "struct CreatePuzz.PuzzStruct[]",
+            "components": [
+              {
+                "name": "id",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "owner",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "title",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "description",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "tags",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "prize",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "paidOut",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "timestamp",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "listed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "disputed",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "disputers",
+                "type": "address[]",
+                "internalType": "address[]"
+              },
+              {
+                "name": "answer",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "timestamp_end",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "timestamp_verified",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "puzPrizeManager",
+                "type": "address",
+                "internalType": "address"
+              }
+            ]
           }
         ],
         "stateMutability": "view"
