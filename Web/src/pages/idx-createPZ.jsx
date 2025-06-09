@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import PuzzleForm from './createPZ.jsx'; // Adjust the import path as necessary
 import { useNavigate } from 'react-router-dom';
 import Modal from '../components/common/modal.jsx'; // Adjust the import path as necessary
+import UserInfoButton from '@/components/common/UserInfoButton.jsx';
 
 const CreatePuzzleSubmit = () => {
   const navigate = useNavigate();
@@ -70,8 +71,7 @@ const CreatePuzzleSubmit = () => {
       <div className="absolute top-8 right-10 flex flex-col items-end">
         <div className="flex items-center">
           {/* 每個使用者的username跟PUZ數量在此處顯示 */}
-          <div className="w-10 h-10 bg-stone-500 rounded-full"></div>
-          <a href='/User' className="text-stone-600 text-2xl font-semibold ml-2">username</a>
+          <UserInfoButton />
         </div>
       </div>
       <div className="flex flex-end flex-col items-center p-8 pb-3"> <h1 className="text-5xl font-bold text-stone-600 mt-8 mb-12 items-center">Create Puzzle</h1></div>

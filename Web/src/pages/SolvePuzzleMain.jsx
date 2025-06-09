@@ -232,7 +232,7 @@ const SolvePuzzleMain = () => {
             <div className="sticky top-0 h-screen bg-[#cdd5d2] bg-opacity-50 px-4 py-10 border-r w-[400px] flex flex-col gap-4">
                 <div className="flex justify-end space-x-4">
                 <Link
-                    to="/Main"
+                    to="/"
                     className="bg-slate-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-slate-600 active:scale-95 transition duration-150 absolute top-9 left-6"
                 >
                     Homepage

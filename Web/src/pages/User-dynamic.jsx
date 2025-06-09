@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {useNavigate } from 'react-router-dom';
+import UserInfoButton from '../components/common/UserInfoButton';
 
 
 export default function User() {
@@ -124,20 +125,7 @@ export default function User() {
         </div>
 
         {/* 使用者頭像與資料 */}
-        <div className="flex items-center space-x-6">
-          <Link to="/User" className="absolute top-6 right-6">
-            <button className="flex items-center space-x-6 bg-gray p-3 rounded ">
-              <img
-                src={userData.avatar}
-                alt="avatar"
-                className="w-16 h-16 rounded-full"
-              />
-              <div className="flex flex-col justify-center text-left">
-                <h2 className="text-xl font-bold">{userData.username}</h2>
-              </div>
-            </button>
-          </Link>
-        </div>
+        <UserInfoButton />
       </div>
 
       {/* 內容區塊：左邊是解題紀錄，右邊是創建的謎題 */}

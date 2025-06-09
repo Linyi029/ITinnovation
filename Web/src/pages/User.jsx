@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {useNavigate } from 'react-router-dom';
+import UserInfoButton from '../components/common/UserInfoButton';
+
 
 export default function Home() {
   const navigate = useNavigate();
@@ -85,16 +87,7 @@ export default function Home() {
         </div>
 
         {/* 右側頭像 + 名稱 + 狀態訊息 */}
-        <div className="flex items-center space-x-6">
-          <img
-            src={userProfile.avatarUrl}
-            alt="avatar"
-            className="w-16 h-16 rounded-full"
-          />
-          <div className="flex items-center space-x-2">
-            <h2 className="text-xl font-bold">{userProfile.username}</h2>
-          </div>
-        </div>
+        <UserInfoButton />
       </div>
 
       {/* 兩個卡片並排 */}
