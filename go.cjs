@@ -59,6 +59,6 @@ if (fs.existsSync(tokenManagerFacPath)) {
 }
 
 // ✅ 輸出結果
-const outputPath = path.join(__dirname, "contracts.json");
+const outputPath = path.join(__dirname, "/Web/contracts.json");
 fs.writeFileSync(outputPath, JSON.stringify(output, null, 2));
 console.log(`📦 ABI 與地址已輸出至 ${outputPath}`);
