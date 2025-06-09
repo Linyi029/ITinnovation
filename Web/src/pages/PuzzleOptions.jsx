@@ -28,25 +28,25 @@ const PuzzleOptions = () => {
 
       {/* 使用者資訊固定在右上角 */}
       <div className="absolute top-8 right-10 flex flex-col items-end">
-      <div className="flex items-center">
-        <div className="w-10 h-10 bg-stone-500 rounded-full"></div>
-        {connectedAccount ? (
-          <button
-            onClick={() => navigate('/User')}
-            className="text-stone-600 text-2xl font-semibold ml-2"
-          >
-            {truncate(connectedAccount, 4, 4, 11)}
-          </button>
-        ) : (
-          <button
-            className="text-stone-600 text-2xl font-semibold ml-2"
-            onClick={connectWallet}
-          >
-            Connect Wallet
-          </button>
-        )}
+        <div className="flex items-center">
+          <div className="w-10 h-10 bg-stone-500 rounded-full"></div>
+          {connectedAccount ? (
+            <button
+              onClick={() => navigate('/User')}
+              className="text-stone-600 text-2xl font-semibold ml-2"
+            >
+              {truncate(connectedAccount, 4, 4, 11)}
+            </button>
+          ) : (
+            <button
+              className="text-stone-600 text-2xl font-semibold ml-2"
+              onClick={connectWallet}
+            >
+              Connect Wallet
+            </button>
+          )}
+        </div>
       </div>
-    </div>
 
       {/* 卡片區域置中 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl w-full px-4">
