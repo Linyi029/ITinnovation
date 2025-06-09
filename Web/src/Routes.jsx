@@ -27,6 +27,7 @@ const AppRoutes = () => {
         <Route path="/VerifiedPuzzle" element={<SolvedPuzzle />} />
         <Route path="/UnverifiedPuzzle" element={<UnsolvedPuzzle />} />
         <Route path="/UnverifiedPuzzle/:id" element={<UnsolvedPuzzle />} />
+        <Route path="/VerifiedPuzzle/:id" element={<SolvedPuzzle />} />
 
       </Routes>
     </Router>
