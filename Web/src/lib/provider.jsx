@@ -128,7 +128,7 @@ export const connectWallet = async () => {
 }
 
 export async function submitPuzzle(formData) {
-  const { createPuzz } = await getContracts();
+  const createPuzz = await getContract('CreatePuzz');
 
   // 假設你 formData 結構是 { title, description, tags, answer, fixedFee }
   // fixedFee 是 uint256 (wei 單位)
@@ -147,10 +147,10 @@ export async function submitPuzzle(formData) {
 export const createAndAddWithNewManager = async (signer, { title, description, tags, answer, fixedFee }) => {
   try {
     //const contract = getContract(signer);
-    const { createPuzz } = await getContracts();
+    const createPuzz = await getContract('CreatePuzz');
 
     // 呼叫合約函式
-    const tx = await contract.createAndAddWithNewManager(title, description, tags, answer, fixedFee);
+    const tx = await createPuzz.createAndAddWithNewManager(title, description, tags, answer, fixedFee);
 
     console.log("⏳ Transaction submitted:", tx.hash);
     const receipt = await tx.wait();
@@ -190,7 +190,7 @@ export const createAndAddWithNewManager = async (signer, { title, description, t
 
 export const fetchActivePuzzles = async () => {
   try {
-    const { createPuzz } = await getContracts();
+    const createPuzz = await getContract('CreatePuzz');
     const puzzles = await createPuzz.getActivePuzzles();
 
     return puzzles.map((puzz) => ({
@@ -209,10 +209,9 @@ export const fetchActivePuzzles = async () => {
   }
 };
 
-
-export default getContracts;	export const fetchAllPuzzles = async () => {
+export const fetchAllPuzzles = async () => {
   try {
-    const { createPuzz } = await getContracts();
+    const createPuzz = await getContract('CreatePuzz');
     const puzzles = await createPuzz.getAllPuzzles();
 
     return puzzles.map((puzz) => ({
@@ -232,7 +231,7 @@ export default getContracts;	export const fetchAllPuzzles = async () => {
 };
 
 export const getPuzzleById = async (id) => {
-  const contracts = await getContracts(); // 你應該拿到的是包含 createPuzz 的合約物件集合
+  const contracts = await getContract('CreatePuzz'); // 你應該拿到的是 createPuzz 的合約物件集合
   const data = await contracts.createPuzz.getPuzzleById(id); // 🔧 呼叫正確的函數名
 
   return {

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import InputField from '../components/ui/InputField';
 import Textarea from '../components/ui/Textarea';
@@ -54,8 +55,8 @@ const PuzzleForm = ({ formData, onChange, onSubmit, onDiscard }) => {
           </label>
           {/* 輸入問題的格子 */}
           <Textarea
-            value={formData.puzzle}
-            onChange={(e) => onChange('puzzle', e.target.value)}
+            value={formData.description}
+            onChange={(e) => onChange('description', e.target.value)}
             placeholder="Enter your puzzle content"
             className="h-20"
             required
@@ -77,12 +78,12 @@ const PuzzleForm = ({ formData, onChange, onSubmit, onDiscard }) => {
 
         <div className="mb-4">
           <label className="block text-base font-normal text-[#1e1e1e] mb-2">
-            Hint (Optional)
+          fixedFee (Optional)
           </label>
           {/* 輸入hint的格子(optional) */}
           <InputField
-            value={formData.hint}
-            onChange={(e) => onChange('hint', e.target.value)}
+            value={formData.fixedFee}
+            onChange={(e) => onChange('fixedFee', e.target.value)}
             placeholder="Enter a hint (optional)"
           />
         </div>

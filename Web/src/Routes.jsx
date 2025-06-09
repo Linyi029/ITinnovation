@@ -6,7 +6,7 @@ import PuzzleCreationPlatform from './pages';
 import Login from './pages';
 import PuzzleOptions from './pages/PuzzleOptions';
 import SolvePuzzleMain from './pages/SolvePuzzleMain';
-import CreatePuzzleSubmit from './pages/idx-createPZ';
+import CreatePuzzleSubmit from './pages/CreatePuzzleSubmit';
 import Register from './pages/register';
 import User from './pages/User';
 import SolvedPuzzle from './pages/VerifiedPuzzle';
@@ -26,6 +26,8 @@ const AppRoutes = () => {
         <Route path="/User" element={<User />} />
         <Route path="/VerifiedPuzzle" element={<SolvedPuzzle />} />
         <Route path="/UnverifiedPuzzle" element={<UnsolvedPuzzle />} />
+        <Route path="/UnverifiedPuzzle/:id" element={<UnsolvedPuzzle />} />
+
       </Routes>
     </Router>
   );

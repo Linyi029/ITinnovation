@@ -6,6 +6,14 @@ import InputField from "../components/ui/InputField.jsx";
 import Button from "../components/ui/Button-submit";
 import NumberSelector from "../components/ui/NumberSelector.jsx";
 import Checkboxes from "../components/ui/Checkboxes.jsx";
+import { fetchAllPuzzles } from "../lib/provider";
+
+import { fetchActivePuzzles } from "../lib/provider"; // 你剛寫好的函式
+
+
+  
+  
+
 
 const SolvePuzzleMain = () => {
     const navigate = useNavigate();
@@ -19,10 +27,62 @@ const SolvePuzzleMain = () => {
     const [filteredItems, setFilteredItems] = useState([]);
     const [allItems, setAllItems] = useState([]);
 
+    // useEffect(() => {
+    //     document.title = "SOLVE | PUZZLE";
+    //     setAllItems(puzzleItems);
+    // }, []);
+
+
+    // useEffect(() => {
+    //     document.title = "SOLVE | PUZZLE";
+
+    //     const loadPuzzles = async () => {
+    //         const puzzles = await fetchActivePuzzles();
+    //         setAllItems(puzzles);
+    //     };
+
+    //     loadPuzzles();
+    // }, []);
+
+    // useEffect(() => {
+    //     document.title = "SOLVE | PUZZLE";
+
+    //     const loadPuzzles = async () => {
+    //       const puzzles = await fetchAllPuzzles();
+    //       setAllItems(puzzles);
+    //     };
+
+    //     loadPuzzles();
+    //   }, []);
+
     useEffect(() => {
-        document.title = "SOLVE | PUZZLE";
-        setAllItems(puzzleItems);
+        const loadPuzzles = async () => {
+            try {
+                const puzzles = await fetchAllPuzzles();
+                // 將 raw puzzle 轉成需要的前端格式
+                const items = puzzles.map((pz) => ({
+                    id: Number(pz.id),
+                    title: pz.title,
+                    question: pz.description,
+                    author: pz.owner,
+                    label: pz.tags?.split(",") || [],
+                    time: new Date(Number(pz.timestamp) * 1000).toLocaleString(),
+                    daysleft: Math.ceil((Number(pz.timestamp_end) * 1000 - Date.now()) / (1000 * 60 * 60 * 24)),
+                    status: pz.paidOut ? "inactive" : "active"
+                }));
+                setAllItems(items);
+            } catch (err) {
+                console.error("❌ Failed to fetch puzzles:", err);
+            }
+        };
+
+        loadPuzzles();
     }, []);
+
+
+    
+
+
 
     // 當 allItems 有值後，自動初始化搜尋結果
     useEffect(() => {
@@ -50,7 +110,7 @@ const SolvePuzzleMain = () => {
 
             return matchesDays && matchesLabel && matchesText;
         });
-        
+
         setFilteredItems(filtered);
     };
 
@@ -73,157 +133,10 @@ const SolvePuzzleMain = () => {
     // status=active的點details要導向UnverifiedPuzzle, status=inactive的點details要導向verifiedPuzzle
     // 點details時 要透過id?取得title, question, author, tags, timestamp?渲染UnverifiedPuzzle或verifiedPuzzle
     const puzzleItems = [
-  {
-    id: 1,
-    question: "What is the capital of France?",
-    title: "Puzzle#1",
-    time: "Solved and verified.",
-    author: "abc",
-    label: ["常識問答", "歷史地理"],
-    daysleft: 0,
-    status: "inactive"
-  },
-  {
-    id: 2,
-    question: "Which number comes next in the sequence: 2, 4, 8, 16, ?",
-    title: "Puzzle#2",
-    time: "1 day left",
-    author: "123",
-    label: ["數字邏輯"],
-    daysleft: 1,
-    status: "active"
-  },
-  {
-    id: 3,
-    question: "Identify the pattern hidden in the following symbol sequence.",
-    title: "Menu Label",
-    time: "Solved and verified.",
-    author: "ejjhkwe",
-    label: ["數字邏輯", "快問快答"],
-    daysleft: 0,
-    status: "inactive"
-  },
-  {
-    id: 4,
-    question: "Unscramble the word: LPEPZU. Hint: It's something you're solving.",
-    title: "Puzzle#4",
-    time: "5 days left",
-    author: "arho",
-    label: ["字詞遊戲", "腦筋急轉彎"],
-    daysleft: 5,
-    status: "active"
-  },
-  {
-    id: 5,
-    question: "What 5-letter word becomes shorter when you add two letters to it?",
-    title: "Puzzle#5",
-    time: "10 days left",
-    author: "e54f",
-    label: ["腦筋急轉彎", "字詞遊戲"],
-    daysleft: 10,
-    status: "active"
-  },
-  {
-    id: 7,
-    question: "If all Bloops are Razzies and all Razzies are Lazzies, are all Bloops Lazzies?",
-    title: "Puzzle Alpha",
-    time: "3 days left",
-    author: "user_alpha",
-    label: ["邏輯推理", "腦筋急轉彎"],
-    daysleft: 3,
-    status: "active"
-  },
-  {
-    id: 8,
-    question: "Find your way from A to B without crossing the same path twice.",
-    title: "Maze Runner",
-    time: "Solved and verified.",
-    author: "maze_master",
-    label: ["數字邏輯", "日常生活", "腦筋急轉彎"],
-    daysleft: 0,
-    status: "inactive"
-  },
-  {
-    id: 9,
-    question: "Four people are seated at a table. Alan sits left of Ben, but right of Cara. Who is on the far left?",
-    title: "Logic Grid",
-    time: "2 days left",
-    author: "logic_fan",
-    label: ["邏輯推理", "常識問答"],
-    daysleft: 2,
-    status: "active"
-  },
-  {
-    id: 10,
-    question: "What comes once in a minute, twice in a moment, but never in a thousand years?",
-    title: "Riddle Time",
-    time: "5 hours left",
-    author: "wise_owl",
-    label: ["經典謎語"],
-    daysleft: 1,
-    status: "active"
-  },
-  {
-    id: 11,
-    question: "Rearrange the letters to form a meaningful word: TSIWT",
-    title: "Word Twist",
-    time: "Solved and verified.",
-    author: "wordsmith",
-    label: ["字詞遊戲", "腦筋急轉彎"],
-    daysleft: 0,
-    status: "inactive"
-  },
-  {
-    id: 12,
-    question: "If 2x + 3 = 9, what is x?",
-    title: "Math Mystery",
-    time: "1 day left",
-    author: "number_nerd",
-    label: ["數字邏輯"],
-    daysleft: 1,
-    status: "active"
-  },
-  {
-    id: 13,
-    question: "Fit all the shapes into the box without overlap.",
-    title: "Shape Shuffle",
-    time: "Solved and verified.",
-    author: "geo_wizard",
-    label: ["數字邏輯", "快問快答"],
-    daysleft: 0,
-    status: "inactive"
-  },
-  {
-    id: 14,
-    question: "What number logically follows this series: 3, 9, 27, ?",
-    title: "Sequence Quest",
-    time: "12 hours left",
-    author: "puzzle_guru",
-    label: ["數字邏輯", "常識問答"],
-    daysleft: 0,
-    status: "active"
-  },
-  {
-    id: 15,
-    question: "Decode the message: %^&@! means 'HELLO'. What does @!%^ mean?",
-    title: "Symbol Cipher",
-    time: "Solved and verified.",
-    author: "cipher_mage",
-    label: ["腦筋急轉彎", "快問快答", "你知道嗎？"],
-    daysleft: 0,
-    status: "inactive"
-  },
-  {
-    id: 16,
-    question: "If a clock shows 3:15, what is the angle between the hour and minute hands?",
-    title: "Clock Logic",
-    time: "6 hours left",
-    author: "ticktock",
-    label: ["常識問答", "日常生活"],
-    daysleft: 1,
-    status: "active"
-  }
-];
+
+
+
+    ];
 
 
     return (
@@ -231,16 +144,16 @@ const SolvePuzzleMain = () => {
             {/* 🔵 左側 filter 區域 */}
             <div className="sticky top-0 h-screen bg-[#cdd5d2] bg-opacity-50 px-4 py-10 border-r w-[400px] flex flex-col gap-4">
                 <div className="flex justify-end space-x-4">
-                <Link
-                    to="/"
-                    className="bg-slate-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-slate-600 active:scale-95 transition duration-150 absolute top-9 left-6"
-                >
-                    Homepage
-                </Link>
+                    <Link
+                        to="/"
+                        className="bg-slate-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-slate-600 active:scale-95 transition duration-150 absolute top-9 left-6"
+                    >
+                        Homepage
+                    </Link>
                 </div>
                 <div className="py-10 space-y-6">
                     <div className="relative w-full max-w-md">
-                    {/* 搜尋title, author, question的輸入框 */}
+                        {/* 搜尋title, author, question的輸入框 */}
                         <InputField
                             value={filters.searchText}
                             onChange={(e) => handleFilterChange("searchText", e.target.value)}
@@ -307,7 +220,7 @@ const SolvePuzzleMain = () => {
                                     </div>
                                     <div className="flex justify-between items-center flex-wrap gap-2 mt-2">
                                         <div className="flex flex-wrap gap-2 pt-2">
-                                          {/* 將單個題目的所有label print出來 */}
+                                            {/* 將單個題目的所有label print出來 */}
                                             {item.label.map((label, index) => (
                                                 <div
                                                     key={index}

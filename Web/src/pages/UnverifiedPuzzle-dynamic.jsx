@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { getPuzzleById } from '../lib/provider.js';
+
 
 export default function UnsolvedPuzzle() {
   const navigate = useNavigate();
@@ -44,21 +46,37 @@ export default function UnsolvedPuzzle() {
     'bg-slate-500 text-white px-4 py-2 rounded hover:bg-slate-600 active:scale-95 transition duration-150';
 
   // 獲取謎題資料的API請求
+  // const fetchPuzzle = async () => {
+  //   try {
+  //     const res = await fetch(`/api/puzzle/${puzzleId}`);
+  //     if (!res.ok) throw new Error('Failed to fetch hint:');
+  //     const data = await res.json();
+  //     setPuzzleData({
+  //       id: data.id,
+  //       title: data.title,
+  //       author: data.author,
+  //       question: data.question,
+  //       labels: data.labels || [],
+  //     });
+  //   } catch (error) {
+  //     console.error(error);
+  //     // 失敗時重置謎題
+  //     setPuzzleData({
+  //       id: null,
+  //       title: '',
+  //       author: '',
+  //       question: '',
+  //       labels: [],
+  //     });
+  //   }
+  // };
+
   const fetchPuzzle = async () => {
     try {
-      const res = await fetch(`/api/puzzle/${puzzleId}`);
-      if (!res.ok) throw new Error('Failed to fetch hint:');
-      const data = await res.json();
-      setPuzzleData({
-        id: data.id,
-        title: data.title,
-        author: data.author,
-        question: data.question,
-        labels: data.labels || [],
-      });
+      const data = await getPuzzleById(puzzleId);
+      setPuzzleData(data);
     } catch (error) {
-      console.error(error);
-      // 失敗時重置謎題
+      console.error("Error fetching puzzle from contract:", error);
       setPuzzleData({
         id: null,
         title: '',
@@ -70,60 +88,60 @@ export default function UnsolvedPuzzle() {
   };
 
   // 獲取用戶資料的API請求
-  const fetchUserProfile = async () => {
-    try {
-      const res = await fetch('/api/user/profile');
-      if (!res.ok) throw new Error('Failed to fetch User');
-      const data = await res.json();
-      setUserData({
-        username: data.username,
-        avatar: data.avatar,
-        statusMsg: data.statusMsg,
-      });
-    } catch (error) {
-      console.error(error);
+  // const fetchUserProfile = async () => {
+  //   try {
+  //     const res = await fetch('/api/user/profile');
+  //     if (!res.ok) throw new Error('Failed to fetch User');
+  //     const data = await res.json();
+  //     setUserData({
+  //       username: data.username,
+  //       avatar: data.avatar,
+  //       statusMsg: data.statusMsg,
+  //     });
+  //   } catch (error) {
+  //     console.error(error);
       // 失敗時設置默認值
-      setUserData({
-        username: 'Unknown User',
-        avatar: '',
-        statusMsg: '',
-      });
-    }
-  };
+  //     setUserData({
+  //       username: 'Unknown User',
+  //       avatar: '',
+  //       statusMsg: '',
+  //     });
+  //   }
+  // };
 
   // 獲取時間資訊的API請求
-  const fetchTimeInfo = async () => {
-    try {
-      const res = await fetch('/api/time/info');
-      if (!res.ok) throw new Error('Failed to fetch time');
-      const data = await res.json();
-      setTimeInfo({
-        statusMsg: data.statusMsg || '',
-      });
-    } catch (error) {
-      console.error(error);
-      setTimeInfo({
-        statusMsg: 'time error',
-      });
-    }
-  };
+  // const fetchTimeInfo = async () => {
+  //   try {
+  //     const res = await fetch('/api/time/info');
+  //     if (!res.ok) throw new Error('Failed to fetch time');
+  //     const data = await res.json();
+  //     setTimeInfo({
+  //       statusMsg: data.statusMsg || '',
+  //     });
+  //   } catch (error) {
+  //     console.error(error);
+  //     setTimeInfo({
+  //       statusMsg: 'time error',
+  //     });
+  //   }
+  // };
 
   // 獲取提示的API請求
-  const fetchHint = async () => {
-    if (!puzzleId) return;
-    setLoadingHint(true);
-    try {
-      const res = await fetch(`/api/puzzle/${puzzleId}/hint`);
-      if (!res.ok) throw new Error('Failed to fetch hint');
-      const data = await res.json();
-      setHintText(data.hint || '');
-    } catch (error) {
-      console.error(error);
-      setHintText('');
-    } finally {
-      setLoadingHint(false);
-    }
-  };
+  // const fetchHint = async () => {
+  //   if (!puzzleId) return;
+  //   setLoadingHint(true);
+  //   try {
+  //     const res = await fetch(`/api/puzzle/${puzzleId}/hint`);
+  //     if (!res.ok) throw new Error('Failed to fetch hint');
+  //     const data = await res.json();
+  //     setHintText(data.hint || '');
+  //   } catch (error) {
+  //     console.error(error);
+  //     setHintText('');
+  //   } finally {
+  //     setLoadingHint(false);
+  //   }
+  // };
 
   // 點擊提示按鈕
   const handleHintClick = async () => {
@@ -132,19 +150,19 @@ export default function UnsolvedPuzzle() {
   };
 
   // 購買提示的API請求
-  const handleBuyHint = async () => {
-    if (!puzzleId) return;
-    setLoadingHint(true);
-    try {
-      const res = await fetch(`/api/puzzle/${puzzleId}/hint/buy`, {
-        method: 'POST',
-      });
-      if (!res.ok) throw new Error('Failed to fetch buy hint');
-      await fetchHint(); // 購買成功後重新獲取提示
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  // const handleBuyHint = async () => {
+  //   if (!puzzleId) return;
+  //   setLoadingHint(true);
+  //   try {
+  //     const res = await fetch(`/api/puzzle/${puzzleId}/hint/buy`, {
+  //       method: 'POST',
+  //     });
+  //     if (!res.ok) throw new Error('Failed to fetch buy hint');
+  //     await fetchHint(); // 購買成功後重新獲取提示
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // };
 
   // 提交答案的API請求
   const handleRetrySubmit = async () => {
