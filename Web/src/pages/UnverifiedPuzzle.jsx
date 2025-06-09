@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { getPuzzleById } from '../lib/provider.js';
+import { getPuzzleById } from '../lib/provider';
 
 
 export default function UnsolvedPuzzle() {

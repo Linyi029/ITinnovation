@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import PuzzleForm from './createPZ.jsx';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../components/common/modal.jsx';
+// import UserInfoButton  from '../components/common/UserInfoButton.jsx';
 
 //import { getContracts } from '../lib/provider.js'; // 解構引入
 //import submitPuzzle from '../lib/provider.js';
-import { getContracts, submitPuzzle } from '../lib/provider.js';
+import { getContract, submitPuzzle } from '../lib/provider';
+import UserInfoButton from '../components/common/UserInfoButton.jsx';
 //import { createAndAddWithNewManager } from '../lib/provider';
 
 
@@ -35,17 +37,17 @@ const CreatePuzzleSubmit = () => {
     document.title = "CREATE YOUR'S | PUZZLE";
 
     // 初始化 signer 地址作為 username
-    async function fetchAddress() {
-      try {
-        const { signer } = await getContracts();
-        const address = await signer.getAddress();
-        setUsername(address);
-      } catch (err) {
-        console.error('Failed to get signer address:', err);
-        setUsername('Unknown user');
-      }
-    }
-    fetchAddress();
+    // async function fetchAddress() {
+    //   try {
+    //     const signer = await getContract();
+    //     const address = await signer.getAddress();
+    //     setUsername(address);
+    //   } catch (err) {
+    //     console.error('Failed to get signer address:', err);
+    //     setUsername('Unknown user');
+    //   }
+    // }
+    // fetchAddress();
   }, []);
 
   const handleChange = (name, value) => {
@@ -130,8 +132,9 @@ const CreatePuzzleSubmit = () => {
     <div className="relative min-h-screen w-full bg-[url('/images/lgin_bg2.jpg')] flex-col items-center">
       <div className="absolute top-8 right-10 flex flex-col items-end">
         <div className="flex items-center">
-          <div className="w-10 h-10 bg-stone-500 rounded-full"></div>
-          <span className="text-stone-600 text-2xl font-semibold ml-2">{username}</span>
+          <span className="text-stone-600 text-2xl font-semibold ml-2">
+            <UserInfoButton />
+          </span>
         </div>
       </div>
 
