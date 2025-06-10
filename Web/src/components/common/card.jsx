@@ -29,7 +29,7 @@ const Card = ({ puzzles, title, emptyMessage }) => {
                 }
                 className="bg-slate-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-slate-600 active:scale-95 transition duration-150"
               >
-                {puzzle.status === "active" ? "Solve" : "Summary"}
+                {puzzle.status === "active" ? "Active" : "Finish => create NFT"}
               </Link>
 
             </div>

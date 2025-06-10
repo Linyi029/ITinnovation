@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Modal from '../components/common/modal.jsx';
 import { getPuzzleById } from '../lib/provider';
+import UserInfoButton from '../components/common/UserInfoButton';
 
 export default function Page5() {
   const { id: puzzleId } = useParams();
@@ -73,14 +74,7 @@ export default function Page5() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray bg-[url('/images/lgin_bg2.jpg')]">
       <div className="w-full flex justify-between items-center px-6">
         <Link to="/" className={btnStyle + " absolute top-9 left-6"}>Homepage</Link>
-        <Link to="/User" className="absolute top-6 right-6">
-          <button className="flex items-center space-x-6 bg-gray p-3 rounded">
-            <img src={userData.avatar} alt="avatar" className="w-16 h-16 rounded-full" />
-            <div className="flex flex-col justify-center text-left">
-              <h2 className="text-xl font-bold">{userData.username}</h2>
-            </div>
-          </button>
-        </Link>
+        <UserInfoButton />
       </div>
 
       <div className="bg-customGray flex items-center justify-center" style={{ width: '1270px', height: '479px' }}>

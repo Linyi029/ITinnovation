@@ -137,7 +137,7 @@ function Card({ title, items, emptyMessage }) {
                 }
                 className="bg-slate-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-slate-600 active:scale-95 transition duration-150"
               >
-                {item.status === "active" ? "Solve" : "Summary"}
+                {item.status === "active" ? "Active" : "Finish => create NFT"}
               </Link>
             </div>
           ))
