@@ -1,23 +1,42 @@
-import React from 'react';
+import { Link } from "react-router-dom";
 import PropTypes from 'prop-types';
 
-const Card = ({ title, price, description, imageSrc, onClick }) => {
+const Card = ({ puzzles, title, emptyMessage }) => {
   return (
-    <div 
-      className="bg-white border border-[#d9d9d9] rounded-lg shadow-sm cursor-pointer transition-transform hover:scale-105"
-      onClick={onClick}
-    >
-      <div className="p-4">
-        <div className="w-full h-[247px] bg-white flex items-center justify-center mb-6">
-          <img 
-            src={imageSrc} 
-            alt={title} 
-            className="w-full h-full object-contain"
-          />
-        </div>
-        <h3 className="text-base font-normal text-[#1e1e1e] mb-2 font-inter">{title}</h3>
-        <p className="text-base font-semibold text-[#1e1e1e] mb-3 font-inter">{price}</p>
-        <p className="text-sm text-[#757575] font-inter">{description}</p>
+    <div className="bg-white rounded-lg shadow p-6 w-full md:w-1/2 h-[500px] flex flex-col">
+      <h3 className="text-lg font-semibold mb-4">{title}</h3>
+
+      <div className="space-y-4 overflow-y-auto pr-2 flex-1">
+        {puzzles.length > 0 ? (
+          puzzles.map((puzzle) => (
+            <div key={puzzle.id} className="flex justify-between items-start border-b pb-2">
+              <div>
+                <p className="font-medium text-gray-800">{puzzle.title}</p>
+                <p className="text-sm text-gray-500">{puzzle.question}</p>
+                <p className="text-xs text-gray-400">
+                  By: {puzzle.author} | Ends in {puzzle.daysleft} days | {puzzle.time}
+                </p>
+                {puzzle.status && (
+                  <span className="text-xs px-2 py-1 bg-slate-100 rounded">
+                    {puzzle.status}
+                  </span>
+                )}
+              </div>
+              <Link
+                to={puzzle.status === "active" 
+                  ? `/UnverifiedPuzzle/${puzzle.id}` 
+                  : `/VerifiedPuzzle/${puzzle.id}`
+                }
+                className="bg-slate-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-slate-600 active:scale-95 transition duration-150"
+              >
+                {puzzle.status === "active" ? "Solve" : "Summary"}
+              </Link>
+
+            </div>
+          ))
+        ) : (
+          <p className="text-gray-500 text-center py-8">{emptyMessage}</p>
+        )}
       </div>
     </div>
   );
@@ -25,10 +44,18 @@ const Card = ({ title, price, description, imageSrc, onClick }) => {
 
 Card.propTypes = {
   title: PropTypes.string.isRequired,
-  price: PropTypes.string.isRequired,
-  description: PropTypes.string.isRequired,
-  imageSrc: PropTypes.string.isRequired,
-  onClick: PropTypes.func
+  emptyMessage: PropTypes.string,
+  puzzles: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.number.isRequired,
+      title: PropTypes.string.isRequired,
+      question: PropTypes.string,
+      author: PropTypes.string,
+      time: PropTypes.string,
+      daysleft: PropTypes.number,
+      status: PropTypes.string,
+    })
+  ).isRequired,
 };
 
 export default Card;

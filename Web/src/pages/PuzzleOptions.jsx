@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import Card from '../components/common/card.jsx';
+import Card_orig from '../components/common/card-orig.jsx';
 import {useNavigate } from 'react-router-dom';
 import {connectWallet} from '../lib/provider';
 import { useGlobalState, truncate} from '../lib/store';
@@ -33,7 +33,7 @@ const PuzzleOptions = () => {
       {/* 卡片區域置中 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl w-full px-4">
         <div className="w-full max-w-[532px]">
-          <Card
+          <Card_orig
             title="Create a puzzle!"
             // description="Body text."
             imageSrc="/images/create.webp"
@@ -41,7 +41,7 @@ const PuzzleOptions = () => {
           />
         </div>
         <div className="w-full max-w-[532px]">
-          <Card
+          <Card_orig
             title="Solving puzzles!"
             // description="Body text."
             imageSrc="/images/solver.jpeg"
