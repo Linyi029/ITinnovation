@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 
 // 🔧 專案根目錄（視情況調整）
-const BASE_PATH = "C:/Users/julie/Web/ITinnovation";
+const BASE_PATH = "/Users/csh5138/ercFinal";
 
 // 📄 Broadcast 檔案
 const broadcastPath = path.join(BASE_PATH, "broadcast/Deploy.s.sol/31337/run-latest.json");

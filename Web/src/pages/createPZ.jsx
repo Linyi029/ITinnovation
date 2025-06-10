@@ -30,8 +30,8 @@ const PuzzleForm = ({ formData, onChange, onSubmit, onDiscard }) => {
             </label>
             {/* 可複選此題目的label(optional) */}
             <Checkboxes 
-              selected={formData.label}
-              onChange={(value) => onChange('label', value)}
+              selected={formData.tags}
+              onChange={(value) => onChange('tags', value)}
               required
             />
           </div>

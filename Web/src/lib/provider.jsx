@@ -113,7 +113,7 @@ export async function submitPuzzle(formData) {
   const tx = await createPuzz.createAndAddWithNewManager(
     formData.title,
     formData.description,
-    formData.tags,
+    formData.tags.join(', '),
     formData.answer,
     formData.fixedFee // 例如 '2000000000000000000' (2 PUZ)
   );
@@ -153,10 +153,12 @@ export const fetchAllPuzzles = async () => {
       title: puzz.title,
       author: puzz.owner,
       question: puzz.description,
+      prize: puzz.prize,
       label: puzz.tags.split(","),
       time: new Date(Number(puzz.timestamp) * 1000).toLocaleDateString(),
       daysleft: Math.ceil((Number(puzz.timestamp_end) - Math.floor(Date.now() / 1000)) / 86400),
       status: puzz.paidOut ? "inactive" : "active",
+
     }));
   } catch (err) {
     console.error("❌ Failed to fetch puzzles:", err);
@@ -197,10 +199,6 @@ export const attemptPuzzle = async (puzzleId, guess) => {
     
     const entryFee = await getEntryFee(puzzleId);
 
-    // const signer = await getSignerOrProvider(await detectProvider());
-    // const puzTokenAddress = contracts.PUZToken.address;
-    // const puzAbi = contracts.PUZToken.abi;
-    // const PUZToken = new Contract(puzTokenAddress, puzAbi, signer);
     const PUZToken = await getContract('PUZToken');
     console.log("entryFee: ", entryFee);
     const approvalTx = await PUZToken.approve(createPuzzAddress, entryFee);

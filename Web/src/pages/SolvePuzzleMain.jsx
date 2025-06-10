@@ -6,7 +6,8 @@ import NumberSelector from "../components/ui/NumberSelector";
 import Checkboxes from "../components/ui/Checkboxes";
 import { Card, CardContent, CardHeader } from "../components/common/card_solvepzmain.jsx";
 import { renderItemButton } from "../components/ui/button.jsx";
-import { fetchAllPuzzles } from "../lib/provider";
+import { fetchAllPuzzles, getEntryFee } from "../lib/provider";
+import { formatEther } from "ethers";
 
 const SolvePuzzleMain = () => {
   const [allItems, setAllItems] = useState([]);
@@ -20,7 +21,23 @@ const SolvePuzzleMain = () => {
     const loadPuzzles = async () => {
       try {
         const puzzles = await fetchAllPuzzles();
-        setAllItems(puzzles);
+        // 並行取得每個 puzzle 的 entryFee
+        const puzzlesWithFee = await Promise.all(
+          puzzles.map(async (puzzle) => {
+            try {
+              const fee = await getEntryFee(puzzle.id);
+              return { ...puzzle, entryFee: fee };
+            } catch (err) {
+              console.error(`❌ Failed to fetch fee for puzzle ${puzzle.id}:`, err);
+              return { ...puzzle, entryFee: "0" }; // fallback
+            }
+          })
+        );
+
+        setAllItems(puzzlesWithFee);
+        console.log("✅ puzzles with entryFee:", puzzlesWithFee);
+
+        //setAllItems(puzzles);
         console.log("✅ already formatted puzzles:", puzzles);
       } catch (err) {
         console.error("❌ Failed to fetch puzzles:", err);
@@ -127,9 +144,29 @@ const SolvePuzzleMain = () => {
               <CardContent className="p-0">
                 <div className="flex flex-col space-y-1">
                   <div className="flex items-center justify-between">
+
                     <span className="font-medium">{item.author}</span>
+
                     <span className="text-sm text-gray-500">{item.time}</span>
                   </div>
+                  {console.log(item.prize)}
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-800">🎁 Prize:</span>
+                    <span className="text-sm text-green-700 font-semibold">
+                      {formatEther(item.prize.toString())} PUZ
+                    </span>
+                  </div>
+                  {item.entryFee && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-800">💰 Entry Fee:</span>
+                      <span className="text-sm text-red-600 font-semibold">
+                        {formatEther(item.entryFee.toString())} PUZ
+                      </span>
+                    </div>
+                  )}
+
+
                   <div className="flex items-center">
                     <span className="text-sm text-gray-600 truncate">{item.question}</span>
                   </div>

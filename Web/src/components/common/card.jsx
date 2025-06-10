@@ -16,6 +16,7 @@ const Card = ({ puzzles, title, emptyMessage }) => {
                 <p className="text-xs text-gray-400">
                   By: {puzzle.author} | Ends in {puzzle.daysleft} days | {puzzle.time}
                 </p>
+
                 {puzzle.status && (
                   <span className="text-xs px-2 py-1 bg-slate-100 rounded">
                     {puzzle.status}
@@ -51,6 +52,7 @@ Card.propTypes = {
       title: PropTypes.string.isRequired,
       question: PropTypes.string,
       author: PropTypes.string,
+      prize: PropTypes.number,
       time: PropTypes.string,
       daysleft: PropTypes.number,
       status: PropTypes.string,

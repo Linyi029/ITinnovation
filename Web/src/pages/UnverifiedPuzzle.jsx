@@ -7,6 +7,8 @@ import { useParams } from 'react-router-dom';
 import { getPuzzleById } from '../lib/provider'; // 根據你實際放的位置調整路徑
 import { attemptPuzzle } from '../lib/provider';
 import UserInfoButton from '../components/common/UserInfoButton';
+import { formatEther } from "ethers";
+import { getEntryFee } from '../lib/provider'; // 加入這行
 
 
 export default function Page6() {
@@ -51,6 +53,7 @@ export default function Page6() {
     const fetchPuzzle = async () => {
       try {
         const data = await getPuzzleById(puzzleId);
+        const entryFee = await getEntryFee(puzzleId);
         console.log("✅ Puzzle data from backend:", data);
 
         setPuzzleData({
@@ -59,7 +62,9 @@ export default function Page6() {
           author: data.author,
           question: data.question,
           labels: data.tags?.split(',') || [],
-          timestamp_end: data.timestamp_end
+          timestamp_end: data.timestamp_end,
+          prize: data.prize,
+          entryFee: entryFee, // 加入 entryFee
         });
         console.log("📦 setPuzzleData done");
       } catch (err) {
@@ -73,7 +78,7 @@ export default function Page6() {
   useEffect(() => {
     console.log("🧩 Current puzzleData:", puzzleData);
   }, [puzzleData]);
-  
+
 
 
   const remainingDays = Math.ceil((puzzleData.timestamp_end * 1000 - Date.now()) / (1000 * 60 * 60 * 24));
@@ -159,6 +164,19 @@ export default function Page6() {
               <strong>Question:</strong> {puzzleData.question}
             </p>
           </div>
+          <div className="overflow-y-auto mb-4" style={{ maxHeight: '160px' }}>
+            <p className="text-lg text-gray-600 mb-2">
+              <strong>Prize:</strong> {formatEther(puzzleData.prize.toString())} PUZ
+            </p>
+          </div>
+
+
+          <div className="overflow-y-auto mb-4" style={{ maxHeight: '160px' }}>
+            <p className="text-lg text-gray-600 mb-2">
+              <strong>Entry Fee:</strong> {formatEther(puzzleData.entryFee.toString())} PUZ
+            </p>
+          </div>
+
 
           <div className="flex justify-between items-center">
             <div className="flex space-x-4">

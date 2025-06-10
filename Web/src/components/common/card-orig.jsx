@@ -18,6 +18,7 @@ const Card = ({ title, price, description, imageSrc, onClick }) => {
         <h3 className="text-base font-normal text-[#1e1e1e] mb-2 font-inter">{title}</h3>
         <p className="text-base font-semibold text-[#1e1e1e] mb-3 font-inter">{price}</p>
         <p className="text-sm text-[#757575] font-inter">{description}</p>
+       
       </div>
     </div>
   );

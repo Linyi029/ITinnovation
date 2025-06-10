@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import Modal from '../components/common/modal.jsx';
 import { getPuzzleById } from '../lib/provider';
 import UserInfoButton from '../components/common/UserInfoButton';
+import { formatEther } from "ethers";
 
 export default function Page5() {
   const { id: puzzleId } = useParams();
@@ -13,6 +14,7 @@ export default function Page5() {
     labels: [],
     author: '',
     question: '',
+
   });
 
   const [isAnswerOpen, setAnswerOpen] = useState(false);
@@ -40,11 +42,14 @@ export default function Page5() {
     const fetchPuzzle = async () => {
       try {
         const data = await getPuzzleById(puzzleId);
+        console.log("PUZ prize", puzzleData.prize)
         setPuzzleData({
           title: data.title,
           labels: data.tags?.split(',') || [],
           author: data.author,
           question: data.question,
+          prize: data.prize,
+
         });
       } catch (error) {
         console.error('Error fetching puzzle:', error);
@@ -100,6 +105,12 @@ export default function Page5() {
               <strong>Question:</strong> {puzzleData.question}
             </p>
           </div>
+          {puzzleData.prize && (
+            <p className="text-lg text-gray-600 mb-2">
+              Prize: {formatEther(puzzleData.prize)} PUZ
+            </p>
+          )}
+
 
           <div className="flex justify-start items-center space-x-4">
             <button onClick={openUnlockHintModal} className={btnStyle}>Hint</button>
