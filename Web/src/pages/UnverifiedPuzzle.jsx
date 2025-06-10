@@ -4,9 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import Modal from '../components/common/modal.jsx';
 import { useParams } from 'react-router-dom';
 //const { id: puzzleId } = useParams();
-import { getPuzzleById } from '../lib/provider.js'; // 根據你實際放的位置調整路徑
+import { getPuzzleById } from '../lib/provider'; // 根據你實際放的位置調整路徑
 
-import { attemptPuzzle } from '../lib/provider.js';
+import { attemptPuzzle } from '../lib/provider';
 
 
 export default function Page6() {
@@ -130,7 +130,7 @@ export default function Page6() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray bg-[url('/images/lgin_bg2.jpg')]">
       <div className="w-full flex justify-between items-center px-6">
         <Link
-          to="/Main"
+          to="/"
           className="bg-slate-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-slate-600 active:scale-95 transition duration-150 absolute top-9 left-6"
         >Homepage</Link>
         <div className="flex items-center space-x-6">

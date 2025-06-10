@@ -3,17 +3,24 @@ import contracts from '../../contracts.json';
 import { setGlobalState } from './store.jsx';
 
 const createPuzzAddress = contracts.CreatePuzz.address;
-const abi = contracts.CreatePuzz.abi;
+const PUZTokenAddress = contracts.PUZToken.address;
 
-export const getContract = async () => {
+const CreatePuzzAbi = contracts.CreatePuzz.abi;
+const PUZTokenAbi = contracts.PUZToken.abi;
+
+export const getContract = async (name) => {
   if (!window.ethereum) throw new Error('Please install MetaMask');
 
   const provider = await detectProvider();
   const signerOrProvider = await getSignerOrProvider(provider);
 
-  const contract = new Contract(createPuzzAddress, abi, signerOrProvider);
+  const contractInfo = contracts[name];
+  if (!contractInfo) throw new Error(`Contract ${name} not found in contracts`);
+
+  const contract = new Contract(contractInfo.address, contractInfo.abi, signerOrProvider);
   return contract;
 };
+
 
 const detectProvider = async () => {
   const accounts = await window.ethereum.request({ method: 'eth_accounts' });
@@ -75,7 +82,7 @@ export const connectWallet = async () => {
     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
     setGlobalState('connectedAccount', accounts[0]);
 
-    const createPuzz = await getContract();
+    const createPuzz = await getContract('CreatePuzz');
     const tx = await createPuzz.registerOrLogin();
     await tx.wait();
 
@@ -91,10 +98,11 @@ export async function submitPuzzle(formData) {
   
   const createPuzz = await getContract('CreatePuzz');
 
-  const signer = await getSignerOrProvider(await detectProvider());
-  const puzTokenAddress = contracts.PUZToken.address;
-  const puzAbi = contracts.PUZToken.abi;
-  const PUZToken = new Contract(puzTokenAddress, puzAbi, signer);
+  // const signer = await getSignerOrProvider(await detectProvider());
+  // // const PUZTokenAddress = contracts.PUZToken.address;
+  // const puzAbi = contracts.PUZToken.abi;
+  // const PUZToken = new Contract(PUZTokenAddress, puzAbi, signer);
+  const PUZToken = await getContract('PUZToken');
   const approvalTx = await PUZToken.approve(createPuzzAddress, formData.fixedFee);
   await approvalTx.wait();
   console.log('✅ PUZToken approved');
@@ -156,9 +164,10 @@ export const fetchAllPuzzles = async () => {
   }
 };
 
+// 改成 getContracts
 export const getPuzzleById = async (id) => {
-  const contracts = await getContract('CreatePuzz'); // 你應該拿到的是 createPuzz 的合約物件集合
-  const data = await contracts.createPuzz.getPuzzleById(id); // 🔧 呼叫正確的函數名
+  const contract = await getContract('CreatePuzz'); // 你應該拿到的是 createPuzz 的合約物件集合
+  const data = await contract.getPuzzleById(id); // 🔧 呼叫正確的函數名
 
   return {
     id: id,
@@ -166,12 +175,38 @@ export const getPuzzleById = async (id) => {
     author: data.owner,
     question: data.description,
     labels: data.tags.split(',').map((tag) => tag.trim()), // tag 是 "AI,Math,Beginner" 這樣的字串
+    prize: data.prize
   };
+};
+
+export const getEntryFee = async (id) => {
+  try {
+    const createPuzz = await getContract('CreatePuzz');
+    const entryFee = await createPuzz.getEntryFee(id);
+
+    return entryFee;
+  } catch (err) {
+    console.error("❌ Failed to fetch entryFee:", err);
+    return [];
+  }
 };
 
 export const attemptPuzzle = async (puzzleId, guess) => {
   try {
-    const { createPuzz } = await getContracts();
+    const createPuzz = await getContract('CreatePuzz');
+    
+    const entryFee = await getEntryFee(puzzleId);
+
+    // const signer = await getSignerOrProvider(await detectProvider());
+    // const puzTokenAddress = contracts.PUZToken.address;
+    // const puzAbi = contracts.PUZToken.abi;
+    // const PUZToken = new Contract(puzTokenAddress, puzAbi, signer);
+    const PUZToken = await getContract('PUZToken');
+    console.log("entryFee: ", entryFee);
+    const approvalTx = await PUZToken.approve(createPuzzAddress, entryFee);
+    await approvalTx.wait();
+    console.log('✅ PUZToken approved');
+
     const tx = await createPuzz.attemptPuzzle(puzzleId, guess);
     const receipt = await tx.wait();
 
@@ -185,6 +220,84 @@ export const attemptPuzzle = async (puzzleId, guess) => {
     };
   } catch (err) {
     console.error("attemptPuzzle error:", err);
+    return {
+      success: false,
+      error: err.message,
+    };
+  }
+};
+
+export const getMyAttempts = async () => {
+  try {
+    const createPuzz = await getContract('CreatePuzz');
+    const attempts = await createPuzz.getMyAttempts();
+
+    return attempts.map((attempt) => ({
+      id: attempt.id,
+      pId: attempt.pId,
+      account: attempt.account,
+      pass: attempt.pass
+    }));
+  } catch (err) {
+    console.error("❌ Failed", err);
+    return [];
+  }
+};
+
+export const getAttemptedPuzzles = async () => {
+  try {
+    const createPuzz = await getContract('CreatePuzz');
+    const puzzles = await createPuzz.getAttemptedPuzzles();
+
+    return puzzles.map((puzz) => ({
+      id: Number(puzz.id),
+      title: puzz.title,
+      author: puzz.owner,
+      question: puzz.description,
+      label: puzz.tags.split(","),
+      time: new Date(Number(puzz.timestamp) * 1000).toLocaleDateString(),
+      daysleft: Math.ceil((Number(puzz.timestamp_end) - Math.floor(Date.now() / 1000)) / 86400),
+      status: puzz.paidOut ? "inactive" : "active",
+    }));
+  } catch (err) {
+    console.error("❌ Failed", err);
+    return [];
+  }
+};
+
+export const getMyPuzzles = async () => {
+  try {
+    const createPuzz = await getContract('CreatePuzz');
+    const puzzles = await createPuzz.getMyPuzzles();
+
+    return puzzles.map((puzz) => ({
+      id: Number(puzz.id),
+      title: puzz.title,
+      author: puzz.owner,
+      question: puzz.description,
+      label: puzz.tags.split(","),
+      time: new Date(Number(puzz.timestamp) * 1000).toLocaleDateString(),
+      daysleft: Math.ceil((Number(puzz.timestamp_end) - Math.floor(Date.now() / 1000)) / 86400),
+      status: puzz.paidOut ? "inactive" : "active",
+    }));
+  } catch (err) {
+    console.error("❌ Failed", err);
+    return [];
+  }
+};
+
+export const claimExpiredReward = async (id) => {
+  try {
+    const createPuzz = await getContract('CreatePuzz');
+    const tx = await createPuzz.claimExpiredReward(id);
+
+    const receipt = await tx.wait();
+    return {
+      success: true,
+      txHash: receipt.transactionHash,
+    };
+  } catch (err) {
+    console.error("❌ Failed:", err);
     return {
       success: false,
       error: err.message,
